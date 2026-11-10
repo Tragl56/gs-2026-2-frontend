@@ -13,6 +13,6 @@ def api_url() -> str:
     return (url or os.getenv("API_URL", "http://127.0.0.1:8000")).rstrip("/")
 
 
-REQUEST_TIMEOUT_SECONDS = float(os.getenv("REQUEST_TIMEOUT_SECONDS", "40"))
+REQUEST_TIMEOUT_SECONDS = float(os.getenv("REQUEST_TIMEOUT_SECONDS", "45"))
 DESCRIPTION_MIN, DESCRIPTION_MAX = 20, 1000
 REFERENCE_MAX = 150

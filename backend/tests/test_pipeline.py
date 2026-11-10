@@ -1,5 +1,5 @@
 from app.pipelines.triage import TriagePipeline, anonymize, apply_rules, build_user_prompt, manual_title
-from app.providers.llm import MockProvider
+from app.providers.llm import FallbackProvider, LLMError, LLMInvalidResponse, MockProvider
 from app.providers.rate_limit import RateLimiter
 from app.schemas.report import Category, LLMTriage, ReportInput, Urgency
 
@@ -57,6 +57,64 @@ def test_pipeline_caches_identical_requests():
     pipeline.run(data)
     pipeline.run(data)
     assert len(calls) == 1
+
+
+class _Broken:
+    name = "quebrado"
+
+    def __init__(self, exc):
+        self.exc = exc
+
+    def triage(self, *_):
+        raise self.exc
+
+
+def test_fallback_uses_next_model_when_first_is_overloaded():
+    mock = MockProvider()
+    mock.name = "reserva"
+    chain = FallbackProvider([_Broken(LLMError("503 alta demanda")), _Broken(LLMInvalidResponse("json")), mock])
+    result = chain.triage("s", '"""Buraco enorme na avenida"""')
+    assert result.category == Category.buraco
+    assert chain.last_used == "reserva"
+
+
+def test_fallback_retries_after_a_short_wait():
+    calls, waits = [], []
+
+    class FlakyOnce:
+        name = "instavel"
+
+        def triage(self, s, u):
+            calls.append(1)
+            if len(calls) == 1:
+                raise LLMError("503 alta demanda")
+            return MockProvider().triage(s, u)
+
+    chain = FallbackProvider([FlakyOnce()], retry_rounds=1, retry_wait=2, sleep=waits.append)
+    assert chain.triage("s", '"""Poste apagado na rua"""').category == Category.iluminacao
+    assert waits == [2] and len(calls) == 2
+
+
+def test_fallback_skips_retry_when_out_of_time():
+    ticks = iter([0, 30])  # início, depois de a 1ª rodada já ter gasto 30s
+    waits = []
+    chain = FallbackProvider([_Broken(LLMError("504"))], retry_rounds=1, retry_wait=2, budget_seconds=25,
+                             sleep=waits.append, clock=lambda: next(ticks))
+    try:
+        chain.triage("s", "u")
+    except LLMError:
+        pass
+    assert waits == []
+
+
+def test_fallback_raises_last_error_when_all_fail():
+    chain = FallbackProvider([_Broken(LLMError("504")), _Broken(LLMError("503"))], retry_rounds=0)
+    try:
+        chain.triage("s", "u")
+    except LLMError as exc:
+        assert "503" in str(exc)
+    else:
+        raise AssertionError("deveria falhar")
 
 
 def test_manual_title_truncates_long_text():

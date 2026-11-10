@@ -3,6 +3,7 @@
 Uso (dentro de backend/):  python -m scripts.run_ai_cases
 """
 import sys
+import time
 
 from app.config import get_settings
 from app.pipelines.triage import TriagePipeline
@@ -21,17 +22,21 @@ CASES = [
 
 def main() -> None:
     sys.stdout.reconfigure(encoding="utf-8")  # acentos corretos no terminal do Windows
-    pipeline = TriagePipeline(build_provider(get_settings()))
-    print("| # | Entrada | Esperado | Obtido | Confiança |")
-    print("|---|---|---|---|---|")
+    provider = build_provider(get_settings())
+    pipeline = TriagePipeline(provider)
+    print("| # | Entrada | Esperado | Obtido | Alerta? | Confiança | Tempo | Modelo |")
+    print("|---|---|---|---|---|---|---|---|")
     for i, (text, expected) in enumerate(CASES, 1):
+        started = time.perf_counter()
         try:
             r = pipeline.run(ReportInput(description=text))
             got = f"{r.category.value} / {r.urgency.value}"
-            conf = f"{r.confidence:.0%}"
+            alert, conf = ("sim" if r.safety_alert else "não"), f"{r.confidence:.0%}"
         except Exception as exc:  # noqa: BLE001
-            got, conf = f"ERRO: {type(exc).__name__}", "-"
-        print(f"| {i} | {text} | {expected} | {got} | {conf} |")
+            got, alert, conf = f"ERRO: {type(exc).__name__}", "-", "-"
+        elapsed = f"{time.perf_counter() - started:.1f}s"
+        model = getattr(provider, "last_used", None) or "-"
+        print(f"| {i} | {text} | {expected} | {got} | {alert} | {conf} | {elapsed} | {model} |")
 
 
 if __name__ == "__main__":

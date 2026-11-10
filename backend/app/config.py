@@ -14,8 +14,8 @@ class Settings(BaseSettings):
     # LLM
     llm_provider: str = Field(default="gemini", description="gemini | mock")
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.5-flash"
-    llm_timeout_seconds: float = 25.0
+    gemini_model: str = "gemini-3.5-flash,gemini-3.1-flash-lite,gemini-3.5-flash-lite"  # ordem de preferência
+    llm_timeout_seconds: float = 12.0  # por modelo
 
     # Segurança
     cors_origins: str = "http://localhost:8501"

@@ -1,12 +1,14 @@
 """Acesso ao LLM. Único ponto do sistema que fala com o provedor de IA.
 
 - GeminiProvider: chama o Gemini com saída estruturada (response_schema = LLMTriage).
+- FallbackProvider: cadeia de modelos reservas com nova tentativa (picos de demanda do Google).
 - MockProvider: heurística por palavras-chave, para testes e demonstração sem chave.
 """
 from __future__ import annotations
 
 import logging
-from typing import Protocol
+import time
+from typing import Callable, Protocol
 
 from pydantic import ValidationError
 
@@ -29,18 +31,16 @@ class LLMProvider(Protocol):
 
 
 class GeminiProvider:
-    def __init__(self, api_key: str, model: str, timeout_seconds: float):
-        from google import genai  # import tardio: testes não precisam do SDK
-        from google.genai import types
+    def __init__(self, client, model: str):
+        from google.genai import types  # import tardio: testes não precisam do SDK
 
-        if not api_key:
-            raise LLMError("GEMINI_API_KEY não configurada")
         self._types = types
         self._model = model
-        self._client = genai.Client(
-            api_key=api_key,
-            http_options=types.HttpOptions(timeout=int(timeout_seconds * 1000)),
-        )
+        self._client = client
+
+    @property
+    def name(self) -> str:
+        return self._model
 
     def triage(self, system_prompt: str, user_prompt: str) -> LLMTriage:
         types = self._types
@@ -56,15 +56,53 @@ class GeminiProvider:
                 ),
             )
         except Exception as exc:  # rede, timeout, 4xx/5xx do provedor
-            log.warning("Falha na chamada ao Gemini: %s", exc)
+            log.warning("Falha no %s: %s", self._model, str(exc)[:200])
             raise LLMError(str(exc)) from exc
 
         text = response.text or ""
         try:
             return LLMTriage.model_validate_json(text)
         except ValidationError as exc:
-            log.warning("Resposta inválida do Gemini: %s", text[:300])
+            log.warning("Resposta inválida do %s: %s", self._model, text[:300])
             raise LLMInvalidResponse(str(exc)) from exc
+
+
+class FallbackProvider:
+    """Tenta cada modelo em ordem: se um estiver sobrecarregado, lento ou responder fora
+    do formato, passa para o próximo. O cidadão só vê erro se todos falharem."""
+
+    def __init__(self, providers: list[LLMProvider], *, retry_rounds: int = 1, retry_wait: float = 2.0,
+                 budget_seconds: float = 25.0, sleep: Callable[[float], None] = time.sleep,
+                 clock: Callable[[], float] = time.monotonic):
+        if not providers:
+            raise LLMError("Nenhum modelo configurado")
+        self._providers = providers
+        self._retry_rounds = retry_rounds
+        self._retry_wait = retry_wait
+        self._budget = budget_seconds  # nova rodada só se ainda houver tempo (o front espera ~45s)
+        self._sleep = sleep
+        self._clock = clock
+        self.last_used: str | None = None  # qual modelo respondeu (para logs e testes)
+
+    def triage(self, system_prompt: str, user_prompt: str) -> LLMTriage:
+        last: Exception | None = None
+        self.last_used = None
+        started = self._clock()
+        for round_ in range(self._retry_rounds + 1):
+            if round_:
+                if self._clock() - started + self._retry_wait > self._budget:
+                    break
+                log.info("Todos os modelos falharam; nova rodada em %.0fs", self._retry_wait)
+                self._sleep(self._retry_wait)
+            for provider in self._providers:
+                try:
+                    result = provider.triage(system_prompt, user_prompt)
+                    self.last_used = getattr(provider, "name", type(provider).__name__)
+                    return result
+                except (LLMError, LLMInvalidResponse) as exc:
+                    last = exc
+                    log.info("Modelo %s falhou; tentando o próximo", getattr(provider, "name", provider))
+        raise last  # type: ignore[misc]
 
 
 _KEYWORDS: list[tuple[Category, tuple[str, ...]]] = [
@@ -108,4 +146,14 @@ class MockProvider:
 def build_provider(settings: Settings) -> LLMProvider:
     if settings.llm_provider.lower() == "mock":
         return MockProvider()
-    return GeminiProvider(settings.gemini_api_key, settings.gemini_model, settings.llm_timeout_seconds)
+    if not settings.gemini_api_key:
+        raise LLMError("GEMINI_API_KEY não configurada")
+    from google import genai
+    from google.genai import types
+
+    client = genai.Client(
+        api_key=settings.gemini_api_key,
+        http_options=types.HttpOptions(timeout=int(settings.llm_timeout_seconds * 1000)),
+    )
+    models = [m.strip() for m in settings.gemini_model.split(",") if m.strip()]
+    return FallbackProvider([GeminiProvider(client, m) for m in models])
