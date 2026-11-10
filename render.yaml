@@ -1,0 +1,26 @@
+# Blueprint do Render: cria a API da Zela a partir do backend/Dockerfile.
+# No painel do Render: New > Blueprint > escolha este repositório.
+services:
+  - type: web
+    name: zela-api
+    runtime: docker
+    plan: free
+    rootDir: backend
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    envVars:
+      - key: GEMINI_API_KEY        # pedido no painel na criação; nunca vai para o repositório
+        sync: false
+      - key: CORS_ORIGINS          # URL do front no Streamlit Cloud, ex.: https://zela.streamlit.app
+        sync: false
+      - key: MANAGER_TOKEN         # código do gestor, gerado aleatoriamente pelo Render
+        generateValue: true
+      - key: LLM_PROVIDER
+        value: gemini
+      - key: GEMINI_MODEL
+        value: gemini-3.5-flash,gemini-3.1-flash-lite,gemini-3.5-flash-lite
+      - key: LLM_TIMEOUT_SECONDS
+        value: "12"
+      - key: SEED_DEMO_DATA
+        value: "true"

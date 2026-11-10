@@ -11,6 +11,15 @@ from ui import theme  # noqa: E402
 
 session.init()
 
+# Na primeira visita, se a API estiver "dormindo" (plano gratuito), espera ela acordar.
+if not st.session_state.get("api_checked"):
+    try:
+        api.health()
+    except api.ApiError:
+        with st.spinner("Acordando o servidor da prefeitura… isso pode levar até 1 minuto na primeira visita."):
+            api.wake_up()
+    st.session_state.api_checked = True
+
 with st.sidebar:
     st.markdown("## 🏙️ Zela")
     profile = st.radio("Quem está usando?", ["cidadao", "gestor"], key="profile",

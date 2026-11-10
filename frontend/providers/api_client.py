@@ -97,6 +97,19 @@ def my_reports(protocols: tuple[str, ...]) -> list[dict]:
     return _request("GET", "/api/v1/reports", params={"protocols": ",".join(protocols)})
 
 
+def wake_up(timeout_seconds: float = 90) -> bool:
+    """Acorda a API hospedada em plano gratuito (o Render desliga após 15 min sem uso
+    e leva ~1 min para voltar). Não usa cache: é chamada só quando o health falha."""
+    try:
+        resp = httpx.get(f"{api_url()}/health", timeout=timeout_seconds)
+        ok = resp.status_code == 200
+    except httpx.HTTPError:
+        ok = False
+    if ok:
+        health.clear()
+    return ok
+
+
 def manager_reports(token: str) -> list[dict]:
     return _request("GET", "/api/v1/manager/reports", token=token)
 

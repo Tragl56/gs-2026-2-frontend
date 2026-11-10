@@ -234,8 +234,13 @@ docker compose up --build
 Front: http://localhost:8501 · API: http://localhost:8000/docs
 
 ### Deploy (Opção A)
-1. **API no Render:** New → Web Service → este repositório, *Root Directory* `backend`, runtime Docker. Variáveis: `GEMINI_API_KEY`, `MANAGER_TOKEN`, `CORS_ORIGINS=https://<seu-app>.streamlit.app`, `SEED_DEMO_DATA=true`.
-2. **Front no Streamlit Community Cloud:** *Main file* `frontend/app.py`; em *Secrets*: `API_URL = "https://<sua-api>.onrender.com"`.
+1. **API no Render** (blueprint `render.yaml`): *New → Blueprint* → este repositório. O Render pede `GEMINI_API_KEY` e `CORS_ORIGINS` (URL do front, ex.: `https://zela.streamlit.app`) e gera um `MANAGER_TOKEN` aleatório, que fica visível em *Environment*.
+2. **Front no Streamlit Community Cloud:** *Create app* → este repositório, *Main file path* `frontend/app.py`; em *Advanced settings → Secrets*: `API_URL = "https://<sua-api>.onrender.com"`.
+
+**Limitações do plano gratuito do Render (escolha consciente para a POC):**
+- A API **dorme após 15 min sem uso** e leva cerca de 1 min para acordar. O front detecta isso na primeira visita e mostra "Acordando o servidor…" em vez de um erro.
+- O disco é **efêmero**: relatos criados no deploy somem quando a API dorme ou reinicia, e os dados de demonstração são recriados. Em produção, trocaríamos o SQLite por um Postgres gerenciado sem mudar as outras camadas (só `providers/repository.py`).
+- Antes de gravar o vídeo, abra a URL da API (`/health`) um minuto antes.
 
 ### Testes automatizados
 ```bash
