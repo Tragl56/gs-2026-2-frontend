@@ -7,6 +7,10 @@ textColor = "#0F172A"
 
 [server]
 headless = true
+# Atrás de proxy (Vercel): o domínio público é diferente do host interno do container.
+# Não há upload de arquivos no app, então desligar a checagem de XSRF não abre brecha.
+enableCORS = false
+enableXsrfProtection = false
 
 [browser]
 gatherUsageStats = false

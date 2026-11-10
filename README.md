@@ -233,20 +233,30 @@ docker compose up --build
 ```
 Front: http://localhost:8501 · API: http://localhost:8000/docs
 
-### Deploy (Opção A): API na Vercel + front no Streamlit Community Cloud
+### Deploy (Opção A): Vercel, front e API no mesmo projeto
 
-O enunciado permite front e API em serviços diferentes, com a URL da API em variável de ambiente.
+O `vercel.json` da raiz define um projeto **multi-serviço**:
 
-1. **API na Vercel:** *Add New → Project* → importar este repositório, com *Root Directory* `backend` (a Vercel detecta o FastAPI em `app/main.py`; `backend/vercel.json` dá até 60 s por chamada, para caber a cadeia de modelos do Gemini).
-   - *Environment Variables*: `GEMINI_API_KEY`, `MANAGER_TOKEN` (código do gestor), `CORS_ORIGINS` (URL do front) e `SEED_DEMO_DATA=true`.
-   - *Storage → Neon (Postgres)* conectado ao projeto: a Vercel cria a variável `DATABASE_URL` sozinha.
-2. **Front no Streamlit Community Cloud:** *Create app* → este repositório, *Main file path* `frontend/app.py`; em *Advanced settings → Secrets*: `API_URL = "https://<sua-api>.vercel.app"`.
+| Serviço | Pasta | Como roda | Rotas públicas |
+|---|---|---|---|
+| `backend` | `backend/` | Função FastAPI (preset nativo) | `/api/*`, `/health`, `/docs`, `/openapi.json` |
+| `frontend` | `frontend/` | Container (`frontend/Dockerfile`, Streamlit) | todo o resto (`/`) |
+
+O front chega à API por um **vínculo interno** (*binding*): a Vercel injeta o endereço do serviço `backend` na variável `API_URL`, a mesma que o front usa localmente. Nenhuma URL fica fixa no código.
+
+1. *Add New → Project* → importar este repositório **com Root Directory `./`** (a Vercel reconhece o `vercel.json` e usa o preset *Services*).
+2. *Environment Variables*: `GEMINI_API_KEY`, `MANAGER_TOKEN` (código do gestor), `CORS_ORIGINS` (URL do projeto, ex.: `https://gs-2026-2-frontend.vercel.app`), `SEED_DEMO_DATA=true` e **`PORT=8501`** (porta em que o container do Streamlit escuta).
+3. *Storage → Neon (Postgres)* conectado ao projeto: a Vercel cria a variável `DATABASE_URL` sozinha. Depois, *Redeploy*.
+
+**Por que Streamlit em container:** o Streamlit é um servidor que fica ligado e conversa com o navegador por WebSocket, não uma função que responde e termina. O runtime de containers da Vercel (em beta) roda o mesmo `Dockerfile` usado no `docker compose`.
+
+**Limitação do Streamlit na Vercel:** o container desliga após 5 min sem uso e cada conexão tem tempo máximo. Quando isso acontece, o Streamlit reconecta sozinho, mas o que o cidadão estava preenchendo se perde. Os protocolos sobrevivem porque ficam na URL, e os relatos estão no Postgres.
 
 **Por que Postgres no deploy:** na Vercel cada chamada pode cair numa instância diferente da função, cada uma com o próprio disco temporário. Com SQLite, o cidadão poderia registrar o relato numa instância e não encontrá-lo na outra. Por isso `providers/repository.py` tem duas implementações com a mesma interface: SQLite (local e Docker) e Postgres (quando existe `DATABASE_URL`). Nenhuma outra camada muda.
 
 **Limitações conhecidas:** o limite de análises por IP fica na memória de cada instância (em produção iria para um Redis); a primeira chamada depois de um tempo parado pode levar alguns segundos a mais (*cold start*), e o front mostra "Acordando o servidor…" se demorar.
 
-> Alternativa já pronta: `render.yaml` sobe a mesma API no Render (*New → Blueprint*).
+> Alternativas já prontas: `render.yaml` sobe a API no Render (*New → Blueprint*), e o front também roda no Streamlit Community Cloud (*Main file path* `frontend/app.py`, *Secret* `API_URL`).
 
 ### Testes automatizados
 ```bash
