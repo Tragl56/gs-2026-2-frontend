@@ -233,18 +233,24 @@ docker compose up --build
 ```
 Front: http://localhost:8501 · API: http://localhost:8000/docs
 
-### Deploy (Opção A)
-1. **API no Render** (blueprint `render.yaml`): *New → Blueprint* → este repositório. O Render pede `GEMINI_API_KEY` e `CORS_ORIGINS` (URL do front, ex.: `https://zela.streamlit.app`) e gera um `MANAGER_TOKEN` aleatório, que fica visível em *Environment*.
-2. **Front no Streamlit Community Cloud:** *Create app* → este repositório, *Main file path* `frontend/app.py`; em *Advanced settings → Secrets*: `API_URL = "https://<sua-api>.onrender.com"`.
+### Deploy (Opção A): API na Vercel + front no Streamlit Community Cloud
 
-**Limitações do plano gratuito do Render (escolha consciente para a POC):**
-- A API **dorme após 15 min sem uso** e leva cerca de 1 min para acordar. O front detecta isso na primeira visita e mostra "Acordando o servidor…" em vez de um erro.
-- O disco é **efêmero**: relatos criados no deploy somem quando a API dorme ou reinicia, e os dados de demonstração são recriados. Em produção, trocaríamos o SQLite por um Postgres gerenciado sem mudar as outras camadas (só `providers/repository.py`).
-- Antes de gravar o vídeo, abra a URL da API (`/health`) um minuto antes.
+O enunciado permite front e API em serviços diferentes, com a URL da API em variável de ambiente.
+
+1. **API na Vercel:** *Add New → Project* → importar este repositório, com *Root Directory* `backend` (a Vercel detecta o FastAPI em `app/main.py`; `backend/vercel.json` dá até 60 s por chamada, para caber a cadeia de modelos do Gemini).
+   - *Environment Variables*: `GEMINI_API_KEY`, `MANAGER_TOKEN` (código do gestor), `CORS_ORIGINS` (URL do front) e `SEED_DEMO_DATA=true`.
+   - *Storage → Neon (Postgres)* conectado ao projeto: a Vercel cria a variável `DATABASE_URL` sozinha.
+2. **Front no Streamlit Community Cloud:** *Create app* → este repositório, *Main file path* `frontend/app.py`; em *Advanced settings → Secrets*: `API_URL = "https://<sua-api>.vercel.app"`.
+
+**Por que Postgres no deploy:** na Vercel cada chamada pode cair numa instância diferente da função, cada uma com o próprio disco temporário. Com SQLite, o cidadão poderia registrar o relato numa instância e não encontrá-lo na outra. Por isso `providers/repository.py` tem duas implementações com a mesma interface: SQLite (local e Docker) e Postgres (quando existe `DATABASE_URL`). Nenhuma outra camada muda.
+
+**Limitações conhecidas:** o limite de análises por IP fica na memória de cada instância (em produção iria para um Redis); a primeira chamada depois de um tempo parado pode levar alguns segundos a mais (*cold start*), e o front mostra "Acordando o servidor…" se demorar.
+
+> Alternativa já pronta: `render.yaml` sobe a mesma API no Render (*New → Blueprint*).
 
 ### Testes automatizados
 ```bash
-cd backend && pytest -q        # 32 testes: pipeline, API, privacidade, RBAC, falhas do LLM, cadeia de modelos, rate limit, CORS
+cd backend && pytest -q        # 33 testes: pipeline, API, banco SQLite/Postgres, privacidade, RBAC, falhas do LLM, cadeia de modelos, rate limit, CORS
 cd frontend && pip install -r requirements-dev.txt && pytest -q   # 6 testes: validação, filtros, prioridade da fila
 ```
 Nenhum teste acessa a internet. O GitHub Actions (`.github/workflows/tests.yml`) roda tudo a cada push.

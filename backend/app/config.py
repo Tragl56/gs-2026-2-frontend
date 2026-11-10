@@ -4,7 +4,7 @@ Nenhum segredo fica no código: a chave do LLM vem de GEMINI_API_KEY.
 """
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -24,6 +24,8 @@ class Settings(BaseSettings):
 
     # Dados
     database_path: str = "data/zela.db"
+    # Postgres (ex.: Neon na Vercel). Se vazio, usa SQLite em database_path.
+    database_url: str = Field(default="", validation_alias=AliasChoices("DATABASE_URL", "POSTGRES_URL"))
     seed_demo_data: bool = False
     viacep_url: str = "https://viacep.com.br/ws"
     open_data_timeout_seconds: float = 4.0

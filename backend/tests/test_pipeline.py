@@ -128,3 +128,13 @@ def test_rate_limiter_blocks_then_releases():
     assert not limiter.allow("ip", now=2)
     assert limiter.allow("outro-ip", now=2)
     assert limiter.allow("ip", now=61)
+
+
+def test_build_repository_picks_backend(monkeypatch):
+    from app.providers import repository as repo_mod
+
+    assert isinstance(repo_mod.build_repository("", ":memory:"), repo_mod.SQLiteReportRepository)
+
+    monkeypatch.setattr(repo_mod.PostgresReportRepository, "__init__", lambda self, url: setattr(self, "url", url))
+    pg = repo_mod.build_repository("postgresql://u:p@host/db", ":memory:")
+    assert isinstance(pg, repo_mod.PostgresReportRepository) and pg.url.startswith("postgresql://")

@@ -11,7 +11,7 @@ from app.config import Settings, get_settings
 from app.pipelines.triage import TriagePipeline
 from app.providers.llm import LLMError, build_provider
 from app.providers.rate_limit import RateLimiter
-from app.providers.repository import ReportRepository
+from app.providers.repository import ReportRepository, build_repository
 from app.providers.seed import seed_if_empty
 from app.routers import health, manager, reports
 
@@ -27,7 +27,7 @@ def create_app(settings: Settings | None = None, repo: ReportRepository | None =
     async def lifespan(app: FastAPI):
         app.state.settings = settings
         app.state.limiter = RateLimiter(settings.analyze_rate_limit_per_minute)
-        app.state.repo = repo or ReportRepository(settings.database_path)
+        app.state.repo = repo or build_repository(settings.database_url, settings.database_path)
         if settings.seed_demo_data:
             seed_if_empty(app.state.repo)
         if pipeline is not None:
