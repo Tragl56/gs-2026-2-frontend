@@ -245,7 +245,7 @@ O `vercel.json` da raiz define um projeto **multi-serviço**:
 O front chega à API por um **vínculo interno** (*binding*): a Vercel injeta o endereço do serviço `backend` na variável `API_URL`, a mesma que o front usa localmente. Nenhuma URL fica fixa no código.
 
 1. *Add New → Project* → importar este repositório **com Root Directory `./`** (a Vercel reconhece o `vercel.json` e usa o preset *Services*).
-2. *Environment Variables*: `GEMINI_API_KEY`, `MANAGER_TOKEN` (código do gestor), `CORS_ORIGINS` (URL do projeto, ex.: `https://gs-2026-2-frontend.vercel.app`), `SEED_DEMO_DATA=true` e **`PORT=8501`** (porta em que o container do Streamlit escuta).
+2. *Environment Variables*: `GEMINI_API_KEY`, `MANAGER_TOKEN` (código do gestor), `CORS_ORIGINS` (URL do projeto, ex.: `https://gs-2026-2-frontend.vercel.app`), `SEED_DEMO_DATA=true` (a porta do Streamlit vem do `EXPOSE 8501` do Dockerfile).
 3. *Storage → Neon (Postgres)* conectado ao projeto: a Vercel cria a variável `DATABASE_URL` sozinha. Depois, *Redeploy*.
 
 **Por que Streamlit em container:** o Streamlit é um servidor que fica ligado e conversa com o navegador por WebSocket, não uma função que responde e termina. O runtime de containers da Vercel (em beta) roda o mesmo `Dockerfile` usado no `docker compose`.

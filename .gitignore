@@ -1,6 +1,10 @@
-# Segredos
+# Segredos (os .env.example são versionados de propósito)
 .env
+.env.*
 **/.env
+**/.env.*
+!.env.example
+!**/.env.example
 .streamlit/secrets.toml
 **/.streamlit/secrets.toml
 
@@ -17,3 +21,6 @@ backend/data/
 
 # Config local do editor/Claude
 .claude/
+
+# Vínculo local com a Vercel (CLI)
+.vercel/
