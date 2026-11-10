@@ -1,0 +1,19 @@
+# Segredos
+.env
+**/.env
+.streamlit/secrets.toml
+**/.streamlit/secrets.toml
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# Dados locais
+backend/data/
+*.db
+
+# Config local do editor/Claude
+.claude/

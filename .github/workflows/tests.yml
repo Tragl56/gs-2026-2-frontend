@@ -1,0 +1,26 @@
+name: testes
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Back-end
+        working-directory: backend
+        env:
+          LLM_PROVIDER: mock
+        run: |
+          pip install -r requirements.txt
+          pytest -q
+      - name: Front-end
+        working-directory: frontend
+        run: |
+          pip install -r requirements-dev.txt
+          pytest -q
