@@ -23,6 +23,7 @@ FRIENDLY = {
     "unauthorized": "Código de acesso inválido.",
     "not_found": "Não encontramos esse protocolo.",
     "server": "O sistema encontrou um problema. Tente de novo em alguns minutos.",
+    "vision_unavailable": "A análise automática de fotos não está disponível agora. Seu relato pode ser enviado normalmente.",
 }
 
 # Falhas em que a API está no ar, mas a IA não ajudou: o cidadão pode registrar sozinho.
@@ -122,11 +123,13 @@ def analyze(description: str, cep: str | None, reference: str | None) -> dict:
     return _require_keys(data, {"category", "urgency", "title", "department", "citizen_guidance"})
 
 
-def confirm(report_input: dict, triage: dict | None, final_category: str, final_urgency: str) -> dict:
-    """Envia o relato confirmado. `triage=None` = registro manual (IA indisponível)."""
+def confirm(report_input: dict, triage: dict | None, final_category: str, final_urgency: str,
+            vision: dict | None = None) -> dict:
+    """Envia o relato confirmado. `triage=None` = registro manual (IA indisponível).
+    `vision` = resumo da análise da foto, quando o cidadão enviou uma."""
     data = _request("POST", "/api/v1/reports", json={
         "input": report_input, "triage": triage,
-        "final_category": final_category, "final_urgency": final_urgency,
+        "final_category": final_category, "final_urgency": final_urgency, "vision": vision,
     })
     invalidate_reads()
     return _require_keys(data, {"protocol"})
@@ -143,6 +146,25 @@ def update_status(token: str, protocol: str, status: str, note: str | None) -> d
                     json={"status": status, "manager_note": note})
     invalidate_reads()
     return data
+
+
+# ---------- Visão computacional (fissuras): o modelo roda no back-end ----------
+
+def inspect_photo(content: bytes, filename: str, mime: str) -> dict:
+    data = _request("POST", "/api/v1/vision/inspect", files={"file": (filename, content, mime)})
+    return _require_keys(data, {"summary", "annotated_jpeg", "latency_ms"})
+
+
+def vision_sequence(token: str, photos: list[tuple[str, bytes, str]]) -> dict:
+    files = [("files", (name, content, mime)) for name, content, mime in photos]
+    return _require_keys(_request("POST", "/api/v1/vision/sequence", token=token, files=files, timeout=300),
+                         {"items", "images_per_second"})
+
+
+def vision_monitor(token: str, content: bytes, filename: str, every: int = 1) -> dict:
+    data = _request("POST", "/api/v1/vision/monitor", token=token, params={"every": every},
+                    files={"file": (filename, content, "video/mp4")}, timeout=600)
+    return _require_keys(data, {"timeline", "fps_pipeline", "events"})
 
 
 def invalidate_reads() -> None:

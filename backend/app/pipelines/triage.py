@@ -6,7 +6,7 @@ import re
 from collections import OrderedDict
 
 from app.providers.llm import LLMProvider
-from app.providers.open_data import lookup_cep
+from app.providers.open_data import lookup_cep_status
 from app.schemas.report import CATEGORY_INFO, Category, LLMTriage, Location, ReportInput, TriageResult, Urgency
 
 SYSTEM_PROMPT = """Você é o assistente de triagem da Zela, um canal de zeladoria urbana.
@@ -21,6 +21,7 @@ Regras:
   * arvore_risco: árvore ou galho caindo, caído ou com risco de queda.
   * calcada_acessibilidade: calçada quebrada, sem rampa, obstáculo para cadeirante ou pessoa cega.
   * sinalizacao_transito: semáforo, placa ou faixa de pedestre com defeito ou ausente.
+  * fissura_estrutura: rachadura, trinca ou fissura em muro, parede, viaduto, ponte, escola ou prédio público.
   Se houver dois problemas, escolha o que oferece mais risco.
 - urgency:
   * critica: risco imediato à vida ou integridade (fio elétrico exposto, árvore caindo sobre via, pessoa presa em alagamento).
@@ -106,7 +107,7 @@ class TriagePipeline:
 
     def run(self, data: ReportInput) -> TriageResult:
         description, anonymized = anonymize(data.description)
-        location = lookup_cep(data.cep) if data.cep else None
+        location, cep_status = lookup_cep_status(data.cep) if data.cep else (None, None)
         prompt = build_user_prompt(description, data.reference, location)
         triage = apply_rules(self._cached_llm(prompt))
         info = CATEGORY_INFO[triage.category]
@@ -117,5 +118,6 @@ class TriagePipeline:
             department=info["department"],
             response_deadline_hours=DEADLINES[triage.urgency],
             location=location,
+            cep_status=cep_status,
             anonymized=anonymized,
         )

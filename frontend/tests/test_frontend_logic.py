@@ -58,3 +58,25 @@ def test_manager_priority_urgency_then_recurrence():
     order = [r["protocol"] for r in sorted(reports[:4], key=lambda r: priority_key(r, clusters))]
     assert order == ["C", "D", "B", "A"]
     assert clusters[("buraco_via", "Sé")] == 2  # o resolvido não conta
+
+
+def test_manager_priority_photo_with_crack_breaks_ties_but_not_urgency():
+    crack = {"crack_detected": True, "confidence": 0.98}
+    reports = [
+        _report("SEM_FOTO", "alta", cat="fissura_estrutura", hood="Mooca"),
+        _report("FOTO", "alta", cat="fissura_estrutura", hood="Lapa") | {"vision": crack},
+        _report("FOTO_MEDIA", "media", cat="fissura_estrutura", hood="Sé") | {"vision": crack},
+        _report("FOTO_OK", "alta", cat="fissura_estrutura", hood="Penha") | {"vision": {"crack_detected": False, "confidence": 0.1}},
+    ]
+    clusters = cluster_sizes(reports)
+    order = [r["protocol"] for r in sorted(reports, key=lambda r: priority_key(r, clusters))]
+    assert order == ["FOTO", "SEM_FOTO", "FOTO_OK", "FOTO_MEDIA"]
+
+def test_cep_notice_messages():
+    from features.validation import cep_notice
+
+    level, text = cep_notice("not_found", " 09750-780 ")
+    assert level == "warning" and "09750-780" in text and "Voltar e editar" in text
+    assert cep_notice("unavailable", "01310-100")[0] == "info"
+    assert cep_notice("found", "01310-100") is None
+    assert cep_notice(None, "") is None

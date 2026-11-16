@@ -1,0 +1,11 @@
+# Módulo de visão computacional (fissuras). Opcional: sem estes pacotes a API sobe normalmente
+# e os endpoints /api/v1/vision/* respondem 503. Não usar no deploy serverless (Vercel).
+# GPU NVIDIA (CUDA 12.8):
+#   pip install torch==2.11.0 torchvision==0.26.0 --index-url https://download.pytorch.org/whl/cu128
+# Só CPU: pip install torch==2.11.0 torchvision==0.26.0 --index-url https://download.pytorch.org/whl/cpu
+torch==2.11.0
+torchvision==0.26.0
+opencv-python-headless==5.0.0.93
+numpy
+imageio
+imageio-ffmpeg

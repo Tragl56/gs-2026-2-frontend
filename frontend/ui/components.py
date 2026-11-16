@@ -77,10 +77,19 @@ def report_card(report: dict, *, show_description: bool = False, extra_notes: li
         notes.insert(0, "✏️ Classificação corrigida pelo cidadão")
     if report.get("ai_used") is False:
         notes.insert(0, "🙋 Registrado pelo cidadão sem a IA")
+    vision = report.get("vision")
+    if vision:
+        conf = f"{vision['confidence']:.0%}"
+        notes.append(f"📷 Foto analisada: possível fissura ({conf} de confiança) · inspeção recomendada"
+                     if vision["crack_detected"] else f"📷 Foto analisada: sem indício de fissura ({conf})")
     if report.get("manager_note"):
         notes.append(f"💬 Prefeitura: {report['manager_note']}")
     for note in notes:
         body.append(f'<p style="margin:.3rem 0 0 0"><small>{html.escape(note)}</small></p>')
+    if show_description and vision and vision.get("thumbnail_jpeg"):
+        body.append('<img alt="Foto do relato com as regiões de possível fissura marcadas" '
+                    f'src="data:image/jpeg;base64,{vision["thumbnail_jpeg"]}" '
+                    'style="max-width:260px;border-radius:8px;margin-top:.5rem">')
     body.append("</div>")
     st.html("".join(body))
 

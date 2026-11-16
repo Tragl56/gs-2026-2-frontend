@@ -35,3 +35,14 @@ def normalize_protocol(value: str) -> str | None:
     """Devolve o protocolo em maiúsculas se o formato for válido (ZLA-AAAAMMDD-NNNNN)."""
     value = value.strip().upper()
     return value if _PROTOCOL_RE.match(value) else None
+
+
+def cep_notice(cep_status: str | None, cep: str) -> tuple[str, str] | None:
+    """Aviso para o cidadão quando o CEP informado não trouxe endereço. Retorna (nível, texto) ou None."""
+    if cep_status == "not_found":
+        return ("warning", f"Não encontramos o CEP **{cep.strip()}**. Confira os números: sem ele, o relato vai sem o "
+                           "bairro e não conseguimos mostrar relatos parecidos por perto. Para corrigir, use "
+                           "**Voltar e editar**; se preferir, confirme assim mesmo.")
+    if cep_status == "unavailable":
+        return ("info", "Não conseguimos consultar o CEP agora. O relato segue normalmente, só sem o bairro.")
+    return None

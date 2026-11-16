@@ -83,6 +83,7 @@ def confirm_report(body: ReportCreate, repo: ReportRepository = Depends(get_repo
         "department": info["department"],
         "title": title,
         "summary": summary,
+        "vision": body.vision,
     })
 
 

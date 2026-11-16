@@ -12,6 +12,12 @@ def render() -> None:
 
 Se o assistente estiver fora do ar, você ainda pode **registrar o relato sozinho**: ele não se perde.
 
+#### Fotos de rachaduras (visão computacional)
+Se você anexar uma foto, um modelo de visão computacional (rede neural ResNet18 treinada com 12 mil imagens de concreto)
+procura **possíveis fissuras**, marca as regiões na foto e mostra a confiança. A equipe da prefeitura vê esse resultado na
+fila e também pode analisar **vídeos e sequências de fotos** de vistoria. É uma **triagem**: indica onde vale inspecionar,
+mas não mede a gravidade da rachadura nem a segurança da estrutura. Quem avalia isso é a vistoria técnica.
+
 #### O que a Zela **não** faz
 - Não substitui serviços de emergência. **Risco à vida: ligue 193 (Bombeiros), 199 (Defesa Civil) ou 190 (Polícia).**
 - Não garante prazo de atendimento: os prazos mostrados são metas de primeira resposta.

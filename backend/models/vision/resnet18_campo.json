@@ -1,0 +1,28 @@
+{
+  "arch": "resnet18",
+  "name": "resnet18_campo",
+  "classes": [
+    "sem_fissura",
+    "com_fissura"
+  ],
+  "mean": [
+    0.485,
+    0.456,
+    0.406
+  ],
+  "std": [
+    0.229,
+    0.224,
+    0.225
+  ],
+  "img_size": 224,
+  "temperature": 1.1622318029403687,
+  "thresholds": {
+    "triagem": 0.9445277452468872,
+    "f1_max": 0.13918156921863556,
+    "padrao": 0.5
+  },
+  "field_aug": true,
+  "params_M": 11.18,
+  "train_minutes": 5.09
+}

@@ -13,14 +13,17 @@ from app.providers.llm import LLMError, build_provider
 from app.providers.rate_limit import RateLimiter
 from app.providers.repository import ReportRepository, build_repository
 from app.providers.seed import seed_if_empty
-from app.routers import health, manager, reports
+from app.routers import health, manager, reports, vision
+from app.vision.service import build_vision
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("zela")
 
+_NOT_SET = object()
+
 
 def create_app(settings: Settings | None = None, repo: ReportRepository | None = None,
-               pipeline: TriagePipeline | None = None) -> FastAPI:
+               pipeline: TriagePipeline | None = None, vision_service=_NOT_SET) -> FastAPI:
     settings = settings or get_settings()
 
     @asynccontextmanager
@@ -38,6 +41,8 @@ def create_app(settings: Settings | None = None, repo: ReportRepository | None =
             except LLMError as exc:
                 log.error("IA indisponível: %s", exc)
                 app.state.pipeline = None
+        app.state.vision = (build_vision(settings.vision_enabled, settings.vision_models_dir, settings.vision_max_frames)
+                            if vision_service is _NOT_SET else vision_service)
         yield
 
     app = FastAPI(title="Zela API", version="1.1.0", lifespan=lifespan,
@@ -59,6 +64,7 @@ def create_app(settings: Settings | None = None, repo: ReportRepository | None =
     app.include_router(health.router)
     app.include_router(reports.router)
     app.include_router(manager.router)
+    app.include_router(vision.router)
     return app
 
 

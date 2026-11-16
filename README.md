@@ -119,8 +119,32 @@ flowchart TB
 | GET | `/api/v1/stats/public` | dados anonimizados para o painel |
 | GET | `/api/v1/manager/reports` | fila completa (header `X-Manager-Token`) |
 | PATCH | `/api/v1/manager/reports/{protocolo}/status` | gestor muda status e responde |
+| GET | `/api/v1/vision/info` | modelo de visão em uso, dispositivo e limiar |
+| POST | `/api/v1/vision/inspect` | foto do cidadão → possível fissura, regiões, confiança, Grad-CAM (nada é salvo; limitado por IP) |
+| POST | `/api/v1/vision/sequence` | gestor: sequência de fotos de vistoria (header `X-Manager-Token`) |
+| POST | `/api/v1/vision/monitor` | gestor: vídeo curto processado quadro a quadro, com alertas e vídeo anotado |
 
 Documentação interativa: `http://localhost:8000/docs`.
+
+### Módulo de visão computacional (fissuras em concreto)
+
+A Zela também identifica **possíveis fissuras** em fotos e vídeos de muros, paredes, pontes e prédios públicos.
+
+- **Cidadão:** no *Novo relato*, a foto é opcional. O back-end analisa (`/vision/inspect`) e a etapa *Revisar* mostra a decisão
+  (*possível fissura: inspeção recomendada* ou *sem indício*), a **confiança**, as **regiões marcadas** e o mapa de atenção
+  (Grad-CAM). O resumo vai junto com o relato (`vision`) e uma nova categoria, **🧱 Fissura em estrutura**, encaminha para a
+  Defesa Civil. O cidadão continua com a palavra final.
+- **Prefeitura:** a fila mostra a foto anotada e a confiança. Entre relatos de mesma urgência e recorrência, os com fissura
+  confirmada pela foto sobem (a foto **desempata**, não passa à frente da urgência). A aba **🎥 Monitoramento por câmera**
+  processa um vídeo curto ou uma sequência de fotos (simulando viatura/drone), mostra FPS, latência, curva de confiança e
+  os **trechos para inspeção**.
+- **Modelo:** ResNet18 pré-treinada no ImageNet com *fine-tuning* na base *Concrete Crack Images for Classification*
+  (12 mil imagens, split por foto de origem), com aumento de dados de condições de campo (pouca luz, sombra, ruído,
+  obstáculo). Teste: precisão 0,999, recall 0,999, F1 0,999; latência ~6 ms por recorte na GTX 1650. Treino, métricas e
+  justificativas estão no projeto de Visão Computacional (notebook + relatório). Pesos em `backend/models/vision/`.
+- **Limite:** é **triagem**. Fissura na foto não determina gravidade nem segurança estrutural; isso cabe à vistoria técnica.
+- **Dependências opcionais:** PyTorch e OpenCV ficam em `backend/requirements-vision.txt`. Sem elas (ex.: Vercel), a API
+  sobe normalmente, `/health` informa `vision_ready: false` e os endpoints de visão respondem `503 vision_unavailable`.
 
 ## 5. Decisões técnicas
 
@@ -218,6 +242,9 @@ Python 3.12+ e uma chave gratuita do Gemini (https://aistudio.google.com/apikey)
 cd backend
 python -m venv .venv && .venv\Scripts\activate      # Linux/Mac: source .venv/bin/activate
 pip install -r requirements.txt
+# Opcional, análise de fotos/vídeos (fissuras). GPU NVIDIA:
+#   pip install torch==2.11.0 torchvision==0.26.0 --index-url https://download.pytorch.org/whl/cu128
+#   pip install -r requirements-vision.txt
 copy .env.example .env                               # Linux/Mac: cp .env.example .env  → coloque sua GEMINI_API_KEY
 uvicorn app.main:app --reload --port 8000
 
@@ -228,7 +255,9 @@ streamlit run app.py
 ```
 Abra http://localhost:8501. Sem chave? Use `LLM_PROVIDER=mock` no `.env` (classificador de demonstração).
 
-**Acesso do gestor:** na barra lateral, "Equipe da prefeitura", com o código definido em `MANAGER_TOKEN`.
+**Acesso do gestor:** na barra lateral, "Equipe da prefeitura", com o código definido em `MANAGER_TOKEN` (com o `.env.example` sem alterar, é `troque-este-token`). Lá ficam a fila e a aba **🎥 Monitoramento por câmera**.
+
+**Análise de fotos:** com `requirements-vision.txt` instalado, a barra lateral mostra "📷 Análise de fotos: ativa" e `http://localhost:8000/health` responde `vision_ready: true`. Fotos de exemplo em `frontend/assets/exemplos/`.
 
 ### Docker (Opção B)
 ```bash
@@ -264,8 +293,8 @@ O front chega à API por um **vínculo interno** (*binding*): a Vercel injeta o 
 
 ### Testes automatizados
 ```bash
-cd backend && pytest -q        # 33 testes: pipeline, API, banco SQLite/Postgres, privacidade, RBAC, falhas do LLM, cadeia de modelos, rate limit, CORS
-cd frontend && pip install -r requirements-dev.txt && pytest -q   # 6 testes: validação, filtros, prioridade da fila
+cd backend && pytest -q        # 40 testes: pipeline, API, banco SQLite/Postgres, privacidade, RBAC, falhas do LLM, cadeia de modelos, rate limit, CORS, visão (sem carregar o PyTorch)
+cd frontend && pip install -r requirements-dev.txt && pytest -q   # 7 testes: validação, filtros, prioridade da fila (inclui desempate pela foto)
 ```
 Nenhum teste acessa a internet. O GitHub Actions (`.github/workflows/tests.yml`) roda tudo a cada push.
 

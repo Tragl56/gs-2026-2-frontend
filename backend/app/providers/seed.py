@@ -17,6 +17,7 @@ _SAMPLES = {
     Category.arvore: "Galho grande pendurado sobre a calçada",
     Category.calcada: "Calçada quebrada impede passagem de cadeirante",
     Category.sinalizacao: "Semáforo piscando amarelo no cruzamento",
+    Category.fissura: "Rachadura no muro da escola aumentou depois da chuva",
     Category.outro: "Ponto de ônibus sem cobertura",
 }
 _WEIGHTS = [Urgency.baixa] * 2 + [Urgency.media] * 4 + [Urgency.alta] * 3 + [Urgency.critica]

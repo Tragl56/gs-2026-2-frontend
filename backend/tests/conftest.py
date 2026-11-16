@@ -13,24 +13,36 @@ TOKEN = "token-de-teste"
 PAULISTA = Location(cep="01310100", street="Avenida Paulista", neighborhood="Bela Vista", city="São Paulo", state="SP")
 
 
+CEP_FORA_DO_AR = "99999999"  # simula o ViaCEP indisponível
+
+
+def fake_lookup_status(cep: str):
+    if cep == "01310100":
+        return PAULISTA, "found"
+    if cep == CEP_FORA_DO_AR:
+        return None, "unavailable"
+    return None, "not_found"
+
+
 def fake_lookup(cep: str):
-    return PAULISTA if cep == "01310100" else None
+    return fake_lookup_status(cep)[0]
 
 
 @pytest.fixture(autouse=True)
 def no_network(monkeypatch):
     """Os testes nunca acessam a internet: ViaCEP é simulado."""
     monkeypatch.setattr(open_data, "lookup_cep", fake_lookup)
-    monkeypatch.setattr("app.pipelines.triage.lookup_cep", fake_lookup)
+    monkeypatch.setattr("app.pipelines.triage.lookup_cep_status", fake_lookup_status)
     monkeypatch.setattr("app.routers.reports.lookup_cep", fake_lookup)
     monkeypatch.setattr("app.routers.deps.get_settings", lambda: Settings(manager_token=TOKEN, _env_file=None))
 
 
-def make_client(provider=None, rate_limit: int = 100) -> TestClient:
+def make_client(provider=None, rate_limit: int = 100, vision=None) -> TestClient:
     settings = Settings(llm_provider="mock", manager_token=TOKEN, cors_origins="http://localhost:8501",
                         analyze_rate_limit_per_minute=rate_limit, _env_file=None)
+    # Visão: nos testes nunca carrega o PyTorch; os testes de visão injetam um serviço falso.
     app = create_app(settings, repo=SQLiteReportRepository(":memory:"),
-                     pipeline=TriagePipeline(provider or MockProvider()))
+                     pipeline=TriagePipeline(provider or MockProvider()), vision_service=vision)
     return TestClient(app)
 
 
