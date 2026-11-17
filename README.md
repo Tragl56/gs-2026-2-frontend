@@ -63,7 +63,7 @@ flowchart LR
     H -->|confirma ou corrige| I[POST /reports → protocolo]
     C -. IA fora do ar .-> M[Cidadão classifica sozinho]
     M --> I
-    I --> J[Meus relatos + avaliação<br/>protocolos salvos na URL]
+    I --> J[Meus relatos + avaliação<br/>protocolos guardados no navegador]
     I --> K[Fila do gestor<br/>urgência + recorrência]
     I --> L[Painel público Plotly<br/>sem dados pessoais]
 ```
@@ -95,32 +95,6 @@ flowchart TB
     O -- HTTPS --> VIA[(ViaCEP)]
 ```
 
-```
-.
-├── backend/
-│   ├── app/
-│   │   ├── main.py            # cria a app, CORS restritivo, handler de validação
-│   │   ├── config.py          # variáveis de ambiente (pydantic-settings)
-│   │   ├── routers/           # reports.py (cidadão), manager.py (gestor), health.py, deps.py
-│   │   ├── schemas/           # report.py: entrada, saída do LLM, protocolo
-│   │   ├── pipelines/         # triage.py: anonimização → ViaCEP → LLM → regras
-│   │   └── providers/         # llm.py, open_data.py, repository.py, rate_limit.py, seed.py
-│   ├── tests/                 # pytest (roda sem subir a interface)
-│   ├── scripts/run_ai_cases.py
-│   ├── requirements.txt · Dockerfile · .env.example
-├── frontend/
-│   ├── app.py                 # só layout: sidebar + abas
-│   ├── config.py              # API_URL e limites, por variável de ambiente
-│   ├── features/              # uma tela por responsabilidade + validação pura
-│   ├── ui/                    # componentes reutilizáveis, gráficos, tema
-│   ├── state/session.py       # estado centralizado (+ protocolos na URL)
-│   ├── providers/api_client.py# cliente HTTP + cache + erros amigáveis
-│   ├── tests/                 # pytest da lógica do front
-│   ├── requirements.txt · requirements-dev.txt · Dockerfile · .env.example
-├── .github/workflows/tests.yml # CI: roda os testes a cada push
-└── docker-compose.yml
-```
-
 ### Endpoints
 
 | Método | Rota | Uso |
@@ -135,7 +109,7 @@ flowchart TB
 | GET | `/api/v1/manager/reports` | fila completa (header `X-Manager-Token`) |
 | PATCH | `/api/v1/manager/reports/{protocolo}/status` | gestor muda status e responde |
 
-Documentação interativa: `http://localhost:8000/docs`.
+Documentação interativa: https://gs-2026-2-frontend.vercel.app/docs
 
 ## 5. Decisões técnicas
 
@@ -154,7 +128,7 @@ Documentação interativa: `http://localhost:8000/docs`.
 - Regras determinísticas **depois** da IA (`apply_rules`): prazo e órgão vêm de tabela fixa (não da IA), e se houver alerta de segurança a urgência não pode ser baixa. A contagem de relatos parecidos é feita no banco, não pela IA.
 - Defesa contra *prompt injection*: o relato vai delimitado por aspas triplas e o prompt manda ignorar instruções contidas nele (caso de teste 6).
 
-**Por que esse deploy?** Front e API ficam no mesmo projeto da Vercel (Opção A, detalhada na seção de execução), com uma URL só e sem servidor para manter. Para rodar tudo localmente em containers, `docker compose up` sobe API + front (Opção B).
+**Por que esse deploy?** Front e API ficam no mesmo projeto da Vercel, com uma URL só e sem servidor para manter (detalhes na seção 9).
 
 ## 6. Ética e limites da IA
 
@@ -167,7 +141,7 @@ Documentação interativa: `http://localhost:8000/docs`.
 | **Uso indevido / dados pessoais** | CPF, e-mail e telefone são removidos **antes** do envio ao LLM; o painel público não mostra texto nem CEP; cidadão só vê relatos dos próprios protocolos; gestor exige token; limite de análises por IP protege a cota. |
 | **Falsa sensação de emergência atendida** | A Zela **não substitui** 190/192/193/199: isso é dito na aba "Como funciona" e em toda mensagem de erro. |
 
-**O que a solução NÃO faz:** não despacha equipes, não garante prazo, não identifica pessoas, não analisa fotos (fora do escopo da POC) e não decide sozinha.
+**O que a solução NÃO faz:** não despacha equipes, não garante prazo, não identifica pessoas e não decide sozinha.
 
 ## 7. Evidências de validação
 
@@ -221,7 +195,6 @@ Gerados com `python -m scripts.run_ai_cases` (dentro de `backend/`, com a chave 
 **Aprendizados:**
 - Toda resposta que voltou do Gemini depois do ajuste do prompt veio na categoria e urgência esperadas.
 - A maior fonte de falha não foi a IA errar, e sim **o provedor ficar indisponível** (picos de demanda e cota do plano gratuito). Por isso a robustez virou prioridade: cadeia de modelos, nova tentativa, registro sem IA e mensagens amigáveis.
-- Os modelos 3.x "pensam" antes de responder. O `gemini-3.8-flash` levou ~50 s por relato, inviável para o cidadão, e por isso ficou de fora da cadeia.
 
 ## 8. UX e acessibilidade aplicadas
 
@@ -234,7 +207,7 @@ Gerados com `python -m scripts.run_ai_cases` (dentro de `backend/`, com a chave 
 - **Linguagem simples**, sem jargão ("Quem vai cuidar", "O que você pode fazer agora").
 - **Design para latência:** `st.status` com mensagens de etapa + barra de progresso + tempo da análise; spinner na confirmação.
 - **Estados vazios e de erro** tratados com ícone + texto e próximo passo; o texto digitado **não se perde** quando a IA falha, e há o caminho "Registrar sem a IA".
-- **Continuidade:** protocolos guardados na URL, sem cadastro.
+- **Continuidade:** protocolos guardados no navegador e num link pessoal, sem cadastro.
 
 ## 9. Como executar
 
@@ -259,14 +232,7 @@ Abra http://localhost:8501. Sem chave? Use `LLM_PROVIDER=mock` no `.env` (classi
 
 **Acesso do gestor:** na barra lateral, "Equipe da prefeitura", com o código definido em `MANAGER_TOKEN`.
 
-### Docker (Opção B)
-```bash
-cp backend/.env.example backend/.env   # preencha GEMINI_API_KEY e MANAGER_TOKEN
-docker compose up --build
-```
-Front: http://localhost:8501 · API: http://localhost:8000/docs
-
-### Deploy (Opção A): Vercel, front e API no mesmo projeto
+### Deploy: Vercel, front e API no mesmo projeto
 
 O `vercel.json` da raiz define um projeto **multi-serviço**:
 
@@ -278,12 +244,12 @@ O `vercel.json` da raiz define um projeto **multi-serviço**:
 O front chega à API por um **vínculo interno** (*binding*): a Vercel injeta o endereço do serviço `backend` na variável `API_URL`, a mesma que o front usa localmente. Nenhuma URL fica fixa no código.
 
 1. *Add New → Project* → importar este repositório **com Root Directory `./`** (a Vercel reconhece o `vercel.json` e usa o preset *Services*).
-2. *Environment Variables*: `GEMINI_API_KEY`, `MANAGER_TOKEN` (código do gestor), `CORS_ORIGINS` (URL do projeto, ex.: `https://gs-2026-2-frontend.vercel.app`), `SEED_DEMO_DATA=true` (a porta do Streamlit vem do `EXPOSE 8501` do Dockerfile).
+2. *Environment Variables*: `GEMINI_API_KEY`, `MANAGER_TOKEN` (código do gestor), `CORS_ORIGINS` (URL do projeto, ex.: `https://gs-2026-2-frontend.vercel.app`), `SEED_DEMO_DATA=true`.
 3. *Redeploy* para as variáveis valerem.
 
-**Por que Streamlit em container:** o Streamlit é um servidor que fica ligado e conversa com o navegador por WebSocket, não uma função que responde e termina. O runtime de containers da Vercel (em beta) roda o mesmo `Dockerfile` usado no `docker compose`.
+**Por que Streamlit em container:** o Streamlit é um servidor que fica ligado e conversa com o navegador por WebSocket, não uma função que responde e termina. O runtime de containers da Vercel (em beta) roda o `frontend/Dockerfile`.
 
-**Limitação do Streamlit na Vercel:** o container desliga após 5 min sem uso e cada conexão tem tempo máximo. Quando isso acontece, o Streamlit reconecta sozinho, mas o que o cidadão estava preenchendo se perde. Os protocolos sobrevivem porque ficam na URL.
+**Limitação do Streamlit na Vercel:** o container desliga após 5 min sem uso e cada conexão tem tempo máximo. Quando isso acontece, o Streamlit reconecta sozinho, mas o que o cidadão estava preenchendo se perde. Os protocolos sobrevivem porque ficam no navegador.
 
 **Banco de dados:** SQLite (`providers/repository.py`). Na Vercel só a pasta `/tmp` é gravável, então os relatos do site publicado são **temporários**: somem num novo deploy ou quando a função reinicia, e o painel volta com os dados de demonstração. Para a POC isso basta; em produção, o repositório trocaria o SQLite por um banco gerenciado (ex.: Postgres) sem mudar as outras camadas.
 
