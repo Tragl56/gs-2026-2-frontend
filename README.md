@@ -17,14 +17,29 @@ A Zela é um canal de **zeladoria urbana com IA**. O cidadão descreve, com as p
 **Quem é afetado:** moradores de grandes cidades, principalmente quem tem menos familiaridade com canais digitais (idosos, pessoas com baixa escolaridade, pessoas com deficiência), e as equipes de zeladoria das prefeituras.
 
 **A dor concreta:**
-- O cidadão não sabe **qual categoria escolher** nem **qual órgão** cuida do problema. Formulários oficiais têm dezenas de assuntos com nomes técnicos ("conservação de logradouro", "manutenção de rede de drenagem").
+- O cidadão não sabe **qual categoria escolher** nem **qual órgão** cuida do problema. Os canais oficiais organizam os pedidos por serviço e por órgão, e a pessoa precisa saber de antemão em qual se encaixa.
 - Relatos mal classificados vão para o órgão errado e **demoram mais**.
 - A prefeitura recebe tudo misturado e **não enxerga o que é urgente nem o que se repete** (um fio caído e uma calçada suja chegam na mesma fila; cinco relatos do mesmo buraco parecem cinco problemas).
 
-**Fontes:** _(preencher com fontes verificadas pelo grupo)_
-- Dados abertos de solicitações do SP156: _link do portal de dados abertos da Prefeitura de SP_
-- _Notícia ou dado sobre tempo de atendimento / reclamações de zeladoria_
-- _Relato/entrevista com cidadão (ver seção 7)_
+**O que os dados mostram (São Paulo):**
+- O SP156 recebe em média **157.120 solicitações por mês** (média de 2022), segundo a Secretaria Municipal de Inovação e
+  Tecnologia: um volume que exige triagem.
+- Cada solicitação tem prazo de resposta de **5 a 60 dias**, conforme o tipo de serviço. Classificar errado leva o pedido
+  ao órgão errado e soma atraso a esse prazo.
+- Na Câmara Municipal (ago/2026), os pedidos sobre calçadas no SP156 **cresceram mais de 200% entre 2020 e 2025** (49.215
+  solicitações), com espera média de **33 dias**, cerca de sete vezes a espera típica de 5 dias. Uma vereadora chamou
+  os canais do 156 para esse tema de **"confusos"**: a mesma dor de "não sei qual categoria escolher".
+
+**Fontes** (consultadas em 17/11/2026):
+- Secretaria Municipal de Inovação e Tecnologia, *Perguntas Frequentes – SP 156*:
+  https://prefeitura.sp.gov.br/web/inovacao/w/acesso_a_informacao/350229
+- Subprefeitura Lapa, *SP156: o atendimento da Prefeitura de São Paulo na palma da sua mão* (01/04/2025):
+  https://prefeitura.sp.gov.br/web/lapa/w/sp156-o-atendimento-da-prefeitura-de-s%C3%A3o-paulo-na-palma-da-sua-m%C3%A3o
+- Câmara Municipal de São Paulo, *Subcomissão de Calçadas ouve responsável pelo serviço SP 156* (13/08/2026):
+  https://www.saopaulo.sp.leg.br/blog/subcomissao-de-calcadas-ouve-responsavel-pelo-servico-sp-156/
+- Portal de Dados Abertos da Prefeitura de São Paulo, *Dados do SP156 – Solicitações* (2012 a set/2026, licença CC0):
+  https://dados.prefeitura.sp.gov.br/dataset/dados-do-sp156
+- Teste com cidadãos de perfis diferentes: seção 7a. Uma pessoa de 68 anos perguntou "Onde eu aperto para avisar?".
 
 ## 2. ODS
 
