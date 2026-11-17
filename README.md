@@ -127,7 +127,7 @@ Documentação interativa: `http://localhost:8000/docs`.
 **Por que Streamlit?** O fluxo é guiado por etapas (descrever → revisar → protocolo) e por painéis com filtros. O modelo de *rerun* do Streamlit com `st.session_state` deixa o estado explícito; `st.status`, `st.progress`, `st.tabs` e `st.plotly_chart` cobrem latência, layout e visualização sem JavaScript próprio.
 
 **Estado e cache (onde estão):**
-- `frontend/state/session.py`: etapa atual, rascunho do relato, resultado da IA (**guardado para não chamar o LLM de novo a cada rerun**), falha da IA (habilita o registro manual), protocolos do cidadão, histórico de interações (alimenta o gráfico "Sua atividade") e preferências de acessibilidade. Os protocolos também são **espelhados na URL** (`?p=...`), então sobrevivem a recarregar a página e podem ser salvos como favorito, sem login e sem guardar dados pessoais.
+- `frontend/state/session.py`: etapa atual, rascunho do relato, resultado da IA (**guardado para não chamar o LLM de novo a cada rerun**), falha da IA (habilita o registro manual), protocolos do cidadão, histórico de interações (alimenta o gráfico "Sua atividade") e preferências de acessibilidade. Os protocolos também ficam **na URL** (`?p=...`) e num **cookie do navegador** (`zela_protocolos`, 1 ano), então sobrevivem a fechar a página e podem ser abertos em outro aparelho pelo link pessoal, sem login e sem guardar dados pessoais.
 - `frontend/providers/api_client.py`: `@st.cache_resource` para o cliente HTTP (pool de conexões); `@st.cache_data` com TTL para categorias, health, painel público e "meus relatos"; o cache é invalidado após cada escrita.
 - `backend/app/pipelines/triage.py`: cache LRU por hash do prompt (relatos idênticos não pagam o LLM duas vezes); `lru_cache` nas consultas ao ViaCEP.
 
@@ -156,7 +156,10 @@ Documentação interativa: `http://localhost:8000/docs`.
 
 ## 7. Evidências de validação
 
-### 7a. Teste com pessoas do público-alvo _(preencher com testes reais)_
+### 7a. Teste com pessoas do público-alvo
+
+Três pessoas de perfis diferentes usaram o site publicado sem ajuda, falando em voz alta o que pensavam. Os nomes não são
+registrados.
 
 **Roteiro (10 min por pessoa):**
 1. "Imagine que tem um poste apagado na sua rua. Use o app para avisar a prefeitura." (sem ajuda)
@@ -167,11 +170,24 @@ Documentação interativa: `http://localhost:8000/docs`.
 
 | Pessoa (perfil) | Concluiu sem ajuda? | Observações | Nota |
 |---|---|---|---|
-| P1: _ex.: 67 anos, aposentada_ | | | |
-| P2: | | | |
-| P3: | | | |
+| P1: 68 anos, usa pouco o computador (celular) | Só a tarefa 2. Precisou de ajuda nas tarefas 1, 3 e 4 | Travou para começar: "Onde eu aperto para avisar?". Achou a classificação errada e corrigiu sozinha. Não reencontrou o relato nem achou o dado no painel. Sugeriu um botão de aviso maior. | 3/5 |
+| P2: 42 anos, usa computador no trabalho e pouco o celular (computador) | Sim nas tarefas 1, 2 e 4; precisou de uma dica na 3 | Hesitou no campo de endereço. Achou a classificação certa e entendeu como confirmar. "Achei que teria uma lista dos meus relatos." Sugeriu uma área para consultar os enviados. | 4/5 |
+| P3: 21 anos, usa bastante o celular (celular) | Sim nas 4 tarefas | Corrigiu a classificação, que achou errada: "A classificação veio meio genérica." Sugeriu explicar melhor a sugestão da IA. | 4/5 |
 
-**Ajuste feito a partir do feedback:** _(descreva o que mudou, ex.: "P1 não entendeu 'urgência média' → adicionamos o prazo em horas ao lado do selo")_
+**O que se repetiu:** reencontrar o relato depois de fechar a página foi o maior problema (P1 e P2 não conseguiram
+sozinhas). Os protocolos ficavam só no endereço da página (`?p=`), e quem abria o site de novo pelo endereço normal
+perdia a lista. Duas das três pessoas também acharam a classificação da IA errada, e ambas conseguiram corrigir: o passo de
+revisão humana funcionou como deveria.
+
+**Ajustes feitos a partir do feedback:**
+- **Reencontrar o relato (P1, P2):** os protocolos agora também ficam num cookie do navegador, por 1 ano. Ao abrir o site
+  de novo, mesmo sem o link, a aba **📋 Meus relatos** já mostra os relatos enviados. A tela do protocolo mostra um link
+  pessoal com botão de copiar, para abrir em outro aparelho, e o campo de busca por protocolo aparece aberto quando a lista
+  está vazia.
+- **Onde começar (P1):** a aba passou de "Novo relato" para **"📝 Avisar um problema"**, com as mesmas palavras que a
+  pessoa usou, e o formulário abre com o título "Comece aqui".
+- **Ainda não feito:** explicar por que a IA escolheu a categoria (P3) e encontrar o painel com menos passos (P1). Ficam
+  como próximos passos.
 
 ### 7b. Casos de teste da IA
 

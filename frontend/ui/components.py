@@ -91,6 +91,16 @@ def kpi_row(items: list[tuple[str, str | int, str | None]]) -> None:
         col.metric(label, value, help=help_text)
 
 
+def remember_protocols(protocols: list[str], cookie: str) -> None:
+    """Guarda os protocolos num cookie do navegador (1 ano), para reaparecerem mesmo abrindo o site sem o link.
+    Os protocolos já foram validados pelo formato ZLA-AAAAMMDD-NNNNN, então não há o que escapar."""
+    if not protocols:
+        return
+    value = ".".join(protocols[-20:])
+    st.iframe(f'<script>document.cookie = "{cookie}={value}; path=/; max-age=31536000; SameSite=Lax";</script>',
+              height=1, alt="")
+
+
 def read_aloud_button(text: str) -> None:
     """Leitura em voz alta (Web Speech API do navegador, pt-BR). Nada sai do computador."""
     # O texto vem da IA: "<" escapado impede que feche a tag <script>.

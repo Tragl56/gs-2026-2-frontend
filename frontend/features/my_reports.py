@@ -8,7 +8,9 @@ from ui import components as ui
 
 
 def render() -> None:
-    with st.expander("🔎 Acompanhar um protocolo de outro dia"), st.form("add_protocol", border=False):
+    protocols = tuple(session.get("protocols"))
+    lookup = st.expander("🔎 Acompanhar um protocolo pelo número", expanded=not protocols)
+    with lookup, st.form("add_protocol", border=False):
         proto = st.text_input("Número do protocolo", placeholder="ZLA-20261106-00012", max_chars=30)
         if st.form_submit_button("Acompanhar"):
             if session.add_protocol(proto):
@@ -17,10 +19,10 @@ def render() -> None:
                 st.warning("O protocolo tem o formato ZLA-AAAAMMDD-NNNNN, por exemplo ZLA-20261106-00012.",
                            icon="✏️")
 
-    protocols = tuple(session.get("protocols"))
     if not protocols:
         ui.empty_state("📭", "Você ainda não fez nenhum relato",
-                       "Use a aba Novo relato para contar um problema da sua rua. Ele aparecerá aqui.")
+                       "Use a aba Avisar um problema para contar o que viu na sua rua. Seus relatos aparecem aqui, "
+                       "mesmo se você fechar a página. Já tem um protocolo? Digite o número acima.")
         return
 
     try:

@@ -29,12 +29,14 @@ with st.sidebar:
         st.caption(f"Seus protocolos: {', '.join(session.get('protocols'))}")
 
 theme.apply(session.get("high_contrast"), session.get("large_text"))
+ui.remember_protocols(session.get("protocols"), session.COOKIE)
 ui.hero("Zela", "Viu um problema na sua rua? Conte pra gente. A IA organiza e a prefeitura resolve.")
 
 if profile == "gestor":
     manager.render()
 else:
-    t_new, t_mine, t_city, t_about = st.tabs(["📝 Novo relato", "📋 Meus relatos", "📊 Painel da cidade", "ℹ️ Como funciona"])
+    t_new, t_mine, t_city, t_about = st.tabs(
+        ["📝 Avisar um problema", "📋 Meus relatos", "📊 Painel da cidade", "ℹ️ Como funciona"])
     with t_new:
         new_report.render()
     with t_mine:

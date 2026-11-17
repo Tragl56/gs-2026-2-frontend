@@ -32,11 +32,14 @@ def init() -> None:
         _load_protocols_from_url()
 
 
-# ---------- Protocolos na URL: sobrevivem a recarregar a página e podem virar favorito ----------
+# ---------- Protocolos: ficam na URL (?p=) e num cookie do navegador (sobrevivem a fechar a página) ----------
+
+COOKIE = "zela_protocolos"
+
 
 def _load_protocols_from_url() -> None:
-    raw = st.query_params.get("p", "")
-    for item in raw.split(","):
+    raw = f'{st.query_params.get("p", "")},{st.context.cookies.get(COOKIE, "")}'
+    for item in raw.replace(".", ",").split(","):
         proto = normalize_protocol(item)
         if proto and proto not in st.session_state.protocols:
             st.session_state.protocols.append(proto)
@@ -47,6 +50,12 @@ def _sync_url() -> None:
         st.query_params["p"] = ",".join(st.session_state.protocols[-20:])
     elif "p" in st.query_params:
         del st.query_params["p"]
+
+
+def personal_link() -> str:
+    """Endereço do site com os protocolos do cidadão, para abrir em outro aparelho."""
+    base = (st.context.url or "").split("?")[0]
+    return f"{base}?p={','.join(st.session_state.protocols[-20:])}"
 
 
 def get(key: str):

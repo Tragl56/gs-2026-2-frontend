@@ -1,4 +1,4 @@
-"""Tela 'Novo relato': entrada → análise da IA → revisão humana → protocolo."""
+"""Tela 'Avisar um problema': entrada → análise da IA → revisão humana → protocolo."""
 from __future__ import annotations
 
 import time
@@ -61,7 +61,7 @@ def _manual_registration() -> None:
 def _step_describe() -> None:
     draft = session.get("draft")
     with st.form("report_form", border=True):
-        st.markdown("#### O que está acontecendo?")
+        st.markdown("#### 📝 Comece aqui: o que está acontecendo?")
         description = st.text_area(
             "Descreva o problema (obrigatório)",
             value=draft["description"], max_chars=DESCRIPTION_MAX, height=150,
@@ -179,8 +179,9 @@ def _step_review(triage: dict) -> None:
 
 def _step_done(report: dict) -> None:
     st.success(f"Relato registrado! Seu protocolo é **{report['protocol']}**", icon="🎉")
-    st.markdown("Anote o protocolo: com ele você acompanha o andamento na aba **Meus relatos**. "
-                "O endereço desta página também guarda seus protocolos: salve-o nos favoritos.")
+    st.markdown("Pronto! Para acompanhar, abra a aba **📋 Meus relatos**. Seus relatos ficam guardados neste "
+                "navegador, mesmo se você fechar a página. Em outro celular ou computador, abra este link:")
+    st.code(session.personal_link(), language=None)
     ui.report_card(report)
 
     if not report.get("ai_used", True):
