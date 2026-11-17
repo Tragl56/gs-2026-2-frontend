@@ -11,9 +11,6 @@ DEFAULTS = {
     "step": 1,                 # 1 = descrever, 2 = revisar IA, 3 = protocolo gerado
     "draft": {"description": "", "cep": "", "reference": ""},
     "triage": None,            # resultado da IA (evita nova chamada a cada rerun)
-    "photo": None,             # foto opcional do relato: {"name", "mime", "content"}
-    "vision": None,            # resultado da análise da foto (módulo de visão)
-    "vision_error": None,      # mensagem amigável se a análise da foto falhou
     "ai_failure": None,        # tipo de falha da IA na última análise (habilita registro manual)
     "last_report": None,       # último relato confirmado
     "protocols": [],           # protocolos do cidadão (espelhados na URL)
@@ -62,14 +59,6 @@ def put(key: str, value) -> None:
 
 def log_event(kind: str, **data) -> None:
     st.session_state.history.append({"when": datetime.now(), "event": kind, **data})
-
-
-def save_photo(photo: dict | None, vision: dict | None, error: str | None) -> None:
-    st.session_state.photo = photo
-    st.session_state.vision = vision
-    st.session_state.vision_error = error
-    if vision:
-        log_event("foto_analisada", crack=vision["summary"]["crack_detected"])
 
 
 def save_triage(draft: dict, triage: dict) -> None:
@@ -121,6 +110,3 @@ def new_report() -> None:
     st.session_state.ai_failure = None
     st.session_state.last_report = None
     st.session_state.draft = {"description": "", "cep": "", "reference": ""}
-    st.session_state.photo = None
-    st.session_state.vision = None
-    st.session_state.vision_error = None

@@ -112,7 +112,6 @@ _KEYWORDS: list[tuple[Category, tuple[str, ...]]] = [
     (Category.buraco, ("buraco", "cratera", "asfalto")),
     (Category.lixo, ("lixo", "entulho", "descarte", "sujeira")),
     (Category.calcada, ("calçada", "calcada", "cadeirante", "rampa", "piso tátil")),
-    (Category.fissura, ("rachadura", "racha", "trinca", "fissura")),
     (Category.sinalizacao, ("semáforo", "semaforo", "placa", "faixa de pedestre", "sinal")),
 ]
 _CRITICAL = ("fio", "choque", "desab", "caiu", "caindo", "ferido", "criança", "crianca", "idoso", "carro preso")

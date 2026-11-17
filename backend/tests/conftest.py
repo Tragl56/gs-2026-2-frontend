@@ -37,12 +37,11 @@ def no_network(monkeypatch):
     monkeypatch.setattr("app.routers.deps.get_settings", lambda: Settings(manager_token=TOKEN, _env_file=None))
 
 
-def make_client(provider=None, rate_limit: int = 100, vision=None) -> TestClient:
+def make_client(provider=None, rate_limit: int = 100) -> TestClient:
     settings = Settings(llm_provider="mock", manager_token=TOKEN, cors_origins="http://localhost:8501",
                         analyze_rate_limit_per_minute=rate_limit, _env_file=None)
-    # Visão: nos testes nunca carrega o PyTorch; os testes de visão injetam um serviço falso.
     app = create_app(settings, repo=SQLiteReportRepository(":memory:"),
-                     pipeline=TriagePipeline(provider or MockProvider()), vision_service=vision)
+                     pipeline=TriagePipeline(provider or MockProvider()))
     return TestClient(app)
 
 

@@ -5,8 +5,6 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.schemas.vision import VisionSummary
-
 
 class Category(str, Enum):
     buraco = "buraco_via"
@@ -16,7 +14,6 @@ class Category(str, Enum):
     arvore = "arvore_risco"
     calcada = "calcada_acessibilidade"
     sinalizacao = "sinalizacao_transito"
-    fissura = "fissura_estrutura"
     outro = "outro"
 
 
@@ -42,7 +39,6 @@ CATEGORY_INFO: dict[Category, dict[str, str]] = {
     Category.arvore: {"label": "Árvore com risco", "department": "Secretaria do Verde e Meio Ambiente", "icon": "🌳"},
     Category.calcada: {"label": "Calçada / acessibilidade", "department": "Subprefeitura – Manutenção de Calçadas", "icon": "♿"},
     Category.sinalizacao: {"label": "Sinalização de trânsito", "department": "Companhia de Engenharia de Tráfego", "icon": "🚦"},
-    Category.fissura: {"label": "Fissura em estrutura (muro, ponte, prédio)", "department": "Defesa Civil – Vistoria de Estruturas", "icon": "🧱"},
     Category.outro: {"label": "Outro problema", "department": "Central de Atendimento 156", "icon": "📌"},
 }
 
@@ -115,8 +111,6 @@ class ReportCreate(BaseModel):
         default=None, description="Triagem da IA; ausente quando o cidadão registra sem a IA (IA fora do ar)")
     final_category: Category
     final_urgency: Urgency
-    vision: VisionSummary | None = Field(
-        default=None, description="Resultado da análise da foto (módulo de visão), quando o cidadão enviou uma")
 
 
 class Feedback(BaseModel):
@@ -151,7 +145,6 @@ class Report(BaseModel):
     manager_note: str | None = None
     feedback_useful: bool | None = None
     feedback_comment: str | None = None
-    vision: VisionSummary | None = None  # foto analisada pelo módulo de visão (triagem, não laudo)
 
 
 class PublicRecord(BaseModel):

@@ -10,5 +10,4 @@ def root() -> dict:
 
 @router.get("/health")
 def health(request: Request) -> dict:
-    return {"status": "ok", "ai_ready": request.app.state.pipeline is not None,
-            "vision_ready": getattr(request.app.state, "vision", None) is not None}
+    return {"status": "ok", "ai_ready": request.app.state.pipeline is not None}

@@ -21,7 +21,6 @@ Regras:
   * arvore_risco: árvore ou galho caindo, caído ou com risco de queda.
   * calcada_acessibilidade: calçada quebrada, sem rampa, obstáculo para cadeirante ou pessoa cega.
   * sinalizacao_transito: semáforo, placa ou faixa de pedestre com defeito ou ausente.
-  * fissura_estrutura: rachadura, trinca ou fissura em muro, parede, viaduto, ponte, escola ou prédio público.
   Se houver dois problemas, escolha o que oferece mais risco.
 - urgency:
   * critica: risco imediato à vida ou integridade (fio elétrico exposto, árvore caindo sobre via, pessoa presa em alagamento).

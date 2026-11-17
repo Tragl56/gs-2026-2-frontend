@@ -30,10 +30,8 @@ with st.sidebar:
     st.toggle("Texto maior", key="large_text")
     st.divider()
     try:
-        h = api.health()
-        ok = h.get("ai_ready", False)
+        ok = api.health().get("ai_ready", False)
         st.markdown("🟢 Sistema no ar" if ok else "🟡 Sistema no ar, assistente de IA indisponível")
-        st.caption("📷 Análise de fotos: ativa" if h.get("vision_ready") else "📷 Análise de fotos: indisponível")
     except api.ApiError:
         st.markdown("🔴 Sistema fora do ar no momento")
     if session.get("protocols"):

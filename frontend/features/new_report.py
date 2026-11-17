@@ -10,10 +10,7 @@ from features.validation import cep_notice, validate_report
 from providers import api_client as api
 from state import session
 from ui import components as ui
-from ui import vision as vui
 from ui.theme import URGENCY, URGENCY_ORDER
-
-PHOTO_TYPES = ["jpg", "jpeg", "png", "webp"]
 
 
 def _category_picker(cats: dict, default: str, key: str, container=st) -> str:
@@ -36,9 +33,7 @@ def _submit(triage: dict | None, final_cat: str, final_urg: str) -> None:
     draft = session.get("draft")
     with st.spinner("Registrando seu relato…"):
         try:
-            vision = session.get("vision")
-            report = api.confirm(_payload(draft), triage, final_cat, final_urg,
-                                 vision["summary"] if vision else None)
+            report = api.confirm(_payload(draft), triage, final_cat, final_urg)
         except api.ApiError as err:
             ui.show_error(err)
             return
@@ -79,13 +74,6 @@ def _step_describe() -> None:
                             help="Usamos o CEP para encontrar o bairro e relatos parecidos por perto.")
         reference = c2.text_input("Ponto de referência (opcional)", value=draft["reference"],
                                   max_chars=REFERENCE_MAX, placeholder="Ex.: em frente à padaria, perto da escola")
-        photo_file = st.file_uploader(
-            "📷 Foto do problema (opcional)", type=PHOTO_TYPES,
-            help="Se for rachadura em muro, parede, ponte ou prédio, a foto passa por uma análise automática "
-                 "de fissuras. Fotografe de perto, com a rachadura no centro e boa luz. Evite pessoas e placas de carro.")
-        kept = session.get("photo")
-        if kept and photo_file is None:
-            st.caption(f"📎 Foto já anexada: {kept['name']} (envie outra para trocar)")
         consent = st.checkbox("Confirmo que meu relato não traz dados pessoais (nome, CPF, telefone) de outras pessoas.")
         submitted = st.form_submit_button("Analisar meu relato", type="primary", width="stretch")
 
@@ -98,18 +86,8 @@ def _step_describe() -> None:
                 st.warning(e, icon="✏️")
             return
 
-        photo = ({"name": photo_file.name, "mime": photo_file.type or "image/jpeg", "content": photo_file.getvalue()}
-                 if photo_file is not None else session.get("photo"))
         failure = None
         with st.status("Analisando seu relato…", expanded=True) as status:
-            if photo:
-                st.write("📷 Analisando a foto (detecção de fissuras)…")
-                try:
-                    session.save_photo(photo, api.inspect_photo(photo["content"], photo["name"], photo["mime"]), None)
-                except api.ApiError as exc:
-                    session.save_photo(photo, None, exc.message)
-            else:
-                session.save_photo(None, None, None)
             st.write("📍 Localizando o endereço pelo CEP…" if cep.strip() else "📝 Lendo seu relato…")
             progress = st.progress(10, text="Preparando")
             try:
@@ -167,15 +145,6 @@ def _step_review(triage: dict) -> None:
         if loc:
             st.markdown("**Local encontrado pelo CEP**")
             st.write(f"📍 {loc['street']}, {loc['neighborhood']} – {loc['city']}/{loc['state']}")
-
-    vision = session.get("vision")
-    if vision:
-        vui.result_panel(vision)
-        if vision["summary"]["crack_detected"] and triage["category"] != "fissura_estrutura":
-            st.info("A foto indica **possível fissura em estrutura**. Se for uma rachadura em muro, parede, ponte "
-                    "ou prédio, corrija o tipo para **🧱 Fissura em estrutura** logo abaixo.", icon="💡")
-    elif session.get("vision_error"):
-        st.info(session.get("vision_error"), icon="📷")
 
     st.markdown("**O que você pode fazer agora**")
     for tip in triage["citizen_guidance"]:

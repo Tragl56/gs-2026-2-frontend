@@ -5,7 +5,7 @@ from collections import Counter
 
 import streamlit as st
 
-from features import dashboard, monitoring
+from features import dashboard
 from providers import api_client as api
 from state import session
 from ui import components as ui
@@ -24,17 +24,9 @@ def cluster_sizes(reports: list[dict]) -> Counter:
     return Counter((r["final_category"], _place(r)) for r in reports if r["status"] in OPEN)
 
 
-def vision_score(r: dict) -> float:
-    """Confiança de fissura da foto quando o modelo recomendou inspeção; 0 sem foto ou sem indício."""
-    v = r.get("vision") or {}
-    return float(v.get("confidence", 0.0)) if v.get("crack_detected") else 0.0
-
-
 def priority_key(r: dict, clusters: Counter) -> tuple:
-    """Mais urgente primeiro; no empate, problema com mais relatos parecidos; depois foto com possível
-    fissura (maior confiança primeiro); por fim, o mais antigo. A foto desempata, não passa à frente da urgência."""
-    return (URGENCY_ORDER.index(r["final_urgency"]), -clusters[(r["final_category"], _place(r))],
-            -vision_score(r), r["created_at"])
+    """Mais urgente primeiro; no empate, problema com mais relatos parecidos; depois o mais antigo."""
+    return (URGENCY_ORDER.index(r["final_urgency"]), -clusters[(r["final_category"], _place(r))], r["created_at"])
 
 
 def login() -> bool:
@@ -102,11 +94,9 @@ def render() -> None:
         ui.show_error(err)
         return
 
-    tab_queue, tab_mon, tab_dash = st.tabs(["🗂️ Fila de atendimento", "🎥 Monitoramento por câmera", "📊 Indicadores"])
+    tab_queue, tab_dash = st.tabs(["🗂️ Fila de atendimento", "📊 Indicadores"])
     with tab_queue:
         _queue(reports, token)
-    with tab_mon:
-        monitoring.render(token)
     with tab_dash:
         dashboard.render(reports, key="mgr", title="Indicadores de todos os relatos")
     if st.button("Sair do modo gestor"):

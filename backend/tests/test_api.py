@@ -12,7 +12,7 @@ def analyze_and_confirm(client, **overrides):
 
 
 def test_health(client):
-    assert client.get("/health").json() == {"status": "ok", "ai_ready": True, "vision_ready": False}
+    assert client.get("/health").json() == {"status": "ok", "ai_ready": True}
 
 
 def test_categories(client):

@@ -31,13 +31,6 @@ class Settings(BaseSettings):
     open_data_timeout_seconds: float = 4.0
     similar_window_days: int = 30
 
-    # Visão computacional (fissuras). Requer requirements-vision.txt; sem ele, os endpoints respondem 503.
-    vision_enabled: bool = True
-    vision_models_dir: str = "models/vision"
-    vision_max_image_mb: int = 15
-    vision_max_video_mb: int = 80
-    vision_max_frames: int = 600
-
     @property
     def cors_origin_list(self) -> list[str]:
         origins = [o.strip() for o in self.cors_origins.split(",") if o.strip()]
