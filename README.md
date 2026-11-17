@@ -6,7 +6,7 @@
 > - Henry Andrade Browne – RM 562089
 > - Luiz Felipe dos Santos Tragi – RM 565009
 >
-> **Deploy:** https://gs-2026-2-frontend.vercel.app · **API:** https://gs-2026-2-frontend.vercel.app/docs · **Vídeo:** _link do YouTube (não listado)_
+> **Deploy:** https://gs-2026-2-frontend.vercel.app · **API:** https://gs-2026-2-frontend.vercel.app/docs · **Vídeo:** https://youtu.be/Jxu9qsUoyvo
 
 A Zela é um canal de **zeladoria urbana com IA**. O cidadão descreve, com as próprias palavras, um problema da rua (buraco, poste apagado, alagamento, árvore com risco…). A IA classifica o tipo, a urgência e o órgão responsável, e avisa se **já existem relatos parecidos por perto**. **O cidadão confere e corrige antes de enviar**, recebe um protocolo e acompanha o atendimento. A equipe da prefeitura vê uma fila priorizada por urgência e por recorrência no bairro. Se a IA cair, o cidadão **registra sozinho** e o relato não se perde.
 
