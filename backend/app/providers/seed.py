@@ -3,7 +3,7 @@
 Ativado com SEED_DEMO_DATA=true e somente quando o banco está vazio.
 """
 import random
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from app.providers.repository import ReportRepository
 from app.schemas.report import CATEGORY_INFO, Category, Location, Status, Urgency
@@ -26,7 +26,7 @@ def seed_if_empty(repo: ReportRepository, n: int = 60) -> None:
     if repo.list():
         return
     rng = random.Random(42)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     for _ in range(n):
         cat = rng.choice(list(Category))
         urg = rng.choice(_WEIGHTS)

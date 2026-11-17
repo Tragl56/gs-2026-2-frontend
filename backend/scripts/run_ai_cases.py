@@ -32,7 +32,7 @@ def main() -> None:
             r = pipeline.run(ReportInput(description=text))
             got = f"{r.category.value} / {r.urgency.value}"
             alert, conf = ("sim" if r.safety_alert else "não"), f"{r.confidence:.0%}"
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             got, alert, conf = f"ERRO: {type(exc).__name__}", "-", "-"
         elapsed = f"{time.perf_counter() - started:.1f}s"
         model = getattr(provider, "last_used", None) or "-"

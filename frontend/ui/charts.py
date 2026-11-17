@@ -12,8 +12,8 @@ _ORDER = [URGENCY[u]["label"] for u in URGENCY_ORDER]
 
 
 def _layout(fig: go.Figure, title: str) -> go.Figure:
-    fig.update_layout(title=title, margin=dict(l=10, r=10, t=50, b=10), legend_title_text="Urgência",
-                      font=dict(size=14), hoverlabel=dict(font_size=14))
+    fig.update_layout(title=title, margin={"l": 10, "r": 10, "t": 50, "b": 10}, legend_title_text="Urgência",
+                      font={"size": 14}, hoverlabel={"font_size": 14})
     return fig
 
 
@@ -49,6 +49,6 @@ def session_timeline(history: list[dict]) -> go.Figure:
     fig = px.scatter(df, x="when", y="event", color="event", symbol="event",
                      hover_data=[c for c in ("category", "urgency") if c in df.columns],
                      labels={"when": "Horário", "event": "Ação"})
-    fig.update_traces(marker=dict(size=14))
+    fig.update_traces(marker={"size": 14})
     fig.update_layout(showlegend=False)
     return _layout(fig, "Sua atividade nesta sessão")

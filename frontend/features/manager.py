@@ -67,19 +67,18 @@ def _queue(reports: list[dict], token: str) -> None:
         if same > 1:
             notes.append(f"👥 {same} relatos abertos deste tipo em {_place(r)}")
         ui.report_card(r, show_description=True, extra_notes=notes)
-        with st.expander(f"Atualizar {r['protocol']}"):
-            with st.form(f"st_{r['protocol']}", border=False):
-                new = st.selectbox("Nova situação", list(STATUS), index=list(STATUS).index(r["status"]),
-                                   format_func=lambda s: f"{STATUS[s]['icon']} {STATUS[s]['label']}")
-                msg = st.text_input("Mensagem para o cidadão (opcional)", max_chars=300,
-                                    value=r.get("manager_note") or "")
-                if st.form_submit_button("Salvar"):
-                    try:
-                        api.update_status(token, r["protocol"], new, msg or None)
-                        st.toast(f"{r['protocol']} atualizado", icon="✅")
-                        st.rerun()
-                    except api.ApiError as err:
-                        ui.show_error(err, retry_hint=False)
+        with st.expander(f"Atualizar {r['protocol']}"), st.form(f"st_{r['protocol']}", border=False):
+            new = st.selectbox("Nova situação", list(STATUS), index=list(STATUS).index(r["status"]),
+                               format_func=lambda s: f"{STATUS[s]['icon']} {STATUS[s]['label']}")
+            msg = st.text_input("Mensagem para o cidadão (opcional)", max_chars=300,
+                                value=r.get("manager_note") or "")
+            if st.form_submit_button("Salvar"):
+                try:
+                    api.update_status(token, r["protocol"], new, msg or None)
+                    st.toast(f"{r['protocol']} atualizado", icon="✅")
+                    st.rerun()
+                except api.ApiError as err:
+                    ui.show_error(err, retry_hint=False)
 
 
 def render() -> None:

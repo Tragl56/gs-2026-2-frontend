@@ -6,7 +6,7 @@ from app.main import create_app
 from app.pipelines.triage import TriagePipeline
 from app.providers import open_data
 from app.providers.llm import LLMError, LLMInvalidResponse, MockProvider
-from app.providers.repository import SQLiteReportRepository
+from app.providers.repository import ReportRepository
 from app.schemas.report import Location
 
 TOKEN = "token-de-teste"
@@ -40,7 +40,7 @@ def no_network(monkeypatch):
 def make_client(provider=None, rate_limit: int = 100) -> TestClient:
     settings = Settings(llm_provider="mock", manager_token=TOKEN, cors_origins="http://localhost:8501",
                         analyze_rate_limit_per_minute=rate_limit, _env_file=None)
-    app = create_app(settings, repo=SQLiteReportRepository(":memory:"),
+    app = create_app(settings, repo=ReportRepository(":memory:"),
                      pipeline=TriagePipeline(provider or MockProvider()))
     return TestClient(app)
 

@@ -7,7 +7,6 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import streamlit as st
-import streamlit.components.v1 as components
 
 from providers.api_client import ApiError
 from ui.theme import STATUS, URGENCY
@@ -88,14 +87,15 @@ def report_card(report: dict, *, show_description: bool = False, extra_notes: li
 def kpi_row(items: list[tuple[str, str | int, str | None]]) -> None:
     """Linha de indicadores: [(rótulo, valor, ajuda)]."""
     cols = st.columns(len(items))
-    for col, (label, value, help_text) in zip(cols, items):
+    for col, (label, value, help_text) in zip(cols, items, strict=True):
         col.metric(label, value, help=help_text)
 
 
 def read_aloud_button(text: str) -> None:
     """Leitura em voz alta (Web Speech API do navegador, pt-BR). Nada sai do computador."""
-    payload = json.dumps(text)
-    components.html(
+    # O texto vem da IA: "<" escapado impede que feche a tag <script>.
+    payload = json.dumps(text).replace("<", r"\u003c")
+    st.iframe(
         f"""
         <button id="b" aria-label="Ouvir orientação em voz alta"
           style="font-size:15px;padding:6px 14px;border-radius:8px;border:1px solid #0F766E;
@@ -107,5 +107,5 @@ def read_aloud_button(text: str) -> None:
           }};
         </script>
         """,
-        height=46,
+        height=46, alt="Botão para ouvir a orientação em voz alta",
     )

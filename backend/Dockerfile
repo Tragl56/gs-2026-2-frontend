@@ -14,5 +14,5 @@ RUN useradd --create-home zela && mkdir -p /app/data && chown -R zela /app
 USER zela
 
 EXPOSE 8000
-# --proxy-headers: atrás do proxy do Render, o rate limit enxerga o IP real do cidadão
+# --proxy-headers: atrás de um proxy, o rate limit enxerga o IP real do cidadão
 CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips='*'"]

@@ -8,15 +8,14 @@ from ui import components as ui
 
 
 def render() -> None:
-    with st.expander("🔎 Acompanhar um protocolo de outro dia"):
-        with st.form("add_protocol", border=False):
-            proto = st.text_input("Número do protocolo", placeholder="ZLA-20261106-00012", max_chars=30)
-            if st.form_submit_button("Acompanhar"):
-                if session.add_protocol(proto):
-                    st.rerun()
-                else:
-                    st.warning("O protocolo tem o formato ZLA-AAAAMMDD-NNNNN, por exemplo ZLA-20261106-00012.",
-                               icon="✏️")
+    with st.expander("🔎 Acompanhar um protocolo de outro dia"), st.form("add_protocol", border=False):
+        proto = st.text_input("Número do protocolo", placeholder="ZLA-20261106-00012", max_chars=30)
+        if st.form_submit_button("Acompanhar"):
+            if session.add_protocol(proto):
+                st.rerun()
+            else:
+                st.warning("O protocolo tem o formato ZLA-AAAAMMDD-NNNNN, por exemplo ZLA-20261106-00012.",
+                           icon="✏️")
 
     protocols = tuple(session.get("protocols"))
     if not protocols:

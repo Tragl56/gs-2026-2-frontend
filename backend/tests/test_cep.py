@@ -39,8 +39,8 @@ class _Resp:
 
 def test_lookup_status_found_and_not_found(monkeypatch):
     open_data._fetch.cache_clear()
-    monkeypatch.setattr(open_data.httpx, "get", lambda url, timeout: _Resp(
-        {"erro": "true"} if "00000000" in url else {"logradouro": "Rua A", "bairro": "Sé", "localidade": "São Paulo", "uf": "SP"}))
+    found = {"logradouro": "Rua A", "bairro": "Sé", "localidade": "São Paulo", "uf": "SP"}
+    monkeypatch.setattr(open_data.httpx, "get", lambda url, **_: _Resp({"erro": "true"} if "00000000" in url else found))
     loc, status = open_data.lookup_cep_status("01001000")
     assert status == "found" and loc.neighborhood == "Sé"
     assert open_data.lookup_cep_status("00000000") == (None, "not_found")
@@ -51,7 +51,7 @@ def test_viacep_failure_is_not_cached(monkeypatch):
     open_data._fetch.cache_clear()
     calls = []
 
-    def flaky(url, timeout):
+    def flaky(url, **_):
         calls.append(url)
         if len(calls) == 1:
             raise httpx.ConnectTimeout("timeout")

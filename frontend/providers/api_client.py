@@ -9,12 +9,13 @@ import logging
 import httpx
 import streamlit as st
 
-from config import REQUEST_TIMEOUT_SECONDS, api_url
+from config import API_URL, REQUEST_TIMEOUT_SECONDS
 
 log = logging.getLogger(__name__)
 
 FRIENDLY = {
-    "offline": "Não conseguimos falar com o sistema da prefeitura agora. Verifique sua internet e tente de novo em alguns minutos.",
+    "offline": "Não conseguimos falar com o sistema da prefeitura agora. "
+               "Verifique sua internet e tente de novo em alguns minutos.",
     "timeout": "A análise está demorando mais que o normal. Seu texto continua salvo aqui.",
     "llm_unavailable": "Nosso assistente está fora do ar no momento. Seu texto continua salvo aqui.",
     "invalid_ai_response": "O assistente deu uma resposta que não conseguimos entender. Seu texto continua salvo aqui.",
@@ -39,18 +40,18 @@ class ApiError(Exception):
 @st.cache_resource
 def _http() -> httpx.Client:
     """Um único cliente HTTP reaproveitado entre reruns e sessões (pool de conexões)."""
-    return httpx.Client(base_url=api_url(), timeout=REQUEST_TIMEOUT_SECONDS)
+    return httpx.Client(base_url=API_URL, timeout=REQUEST_TIMEOUT_SECONDS)
 
 
 def _request(method: str, path: str, *, token: str | None = None, **kwargs):
     headers = {"X-Manager-Token": token} if token else None
     try:
         resp = _http().request(method, path, headers=headers, **kwargs)
-    except httpx.TimeoutException:
-        raise ApiError("timeout")
+    except httpx.TimeoutException as exc:
+        raise ApiError("timeout") from exc
     except httpx.HTTPError as exc:
         log.warning("API inacessível: %s", exc)
-        raise ApiError("offline")
+        raise ApiError("offline") from exc
 
     if resp.status_code >= 400:
         try:
@@ -63,8 +64,8 @@ def _request(method: str, path: str, *, token: str | None = None, **kwargs):
         raise ApiError(code or ("server" if resp.status_code >= 500 else "invalid_response"))
     try:
         return resp.json()
-    except ValueError:
-        raise ApiError("invalid_response")
+    except ValueError as exc:
+        raise ApiError("invalid_response") from exc
 
 
 def _require_keys(data: dict, keys: set[str]) -> dict:
@@ -95,19 +96,6 @@ def my_reports(protocols: tuple[str, ...]) -> list[dict]:
     if not protocols:
         return []
     return _request("GET", "/api/v1/reports", params={"protocols": ",".join(protocols)})
-
-
-def wake_up(timeout_seconds: float = 90) -> bool:
-    """Acorda a API hospedada em plano gratuito (o Render desliga após 15 min sem uso
-    e leva ~1 min para voltar). Não usa cache: é chamada só quando o health falha."""
-    try:
-        resp = httpx.get(f"{api_url()}/health", timeout=timeout_seconds)
-        ok = resp.status_code == 200
-    except httpx.HTTPError:
-        ok = False
-    if ok:
-        health.clear()
-    return ok
 
 
 def manager_reports(token: str) -> list[dict]:

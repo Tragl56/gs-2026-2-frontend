@@ -2,7 +2,7 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -27,7 +27,7 @@ def create_app(settings: Settings | None = None, repo: ReportRepository | None =
     async def lifespan(app: FastAPI):
         app.state.settings = settings
         app.state.limiter = RateLimiter(settings.analyze_rate_limit_per_minute)
-        app.state.repo = repo or build_repository(settings.database_url, settings.database_path)
+        app.state.repo = repo or build_repository(settings.database_path)
         if settings.seed_demo_data:
             seed_if_empty(app.state.repo)
         if pipeline is not None:
@@ -51,7 +51,7 @@ def create_app(settings: Settings | None = None, repo: ReportRepository | None =
     )
 
     @app.exception_handler(RequestValidationError)
-    async def validation_handler(request: Request, exc: RequestValidationError):
+    async def validation_handler(_request, exc: RequestValidationError):
         # Mensagens simples para o cidadão, sem stack trace.
         messages = [str(e.get("msg", "")).removeprefix("Value error, ") for e in exc.errors()]
         return JSONResponse(status_code=422, content={"detail": {"code": "invalid_input", "message": " ".join(messages)}})

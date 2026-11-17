@@ -95,7 +95,7 @@ flowchart TB
 │   ├── requirements.txt · Dockerfile · .env.example
 ├── frontend/
 │   ├── app.py                 # só layout: sidebar + abas
-│   ├── config.py              # API_URL por env/st.secrets
+│   ├── config.py              # API_URL e limites, por variável de ambiente
 │   ├── features/              # uma tela por responsabilidade + validação pura
 │   ├── ui/                    # componentes reutilizáveis, gráficos, tema
 │   ├── state/session.py       # estado centralizado (+ protocolos na URL)
@@ -124,7 +124,7 @@ Documentação interativa: `http://localhost:8000/docs`.
 
 ## 5. Decisões técnicas
 
-**Por que Streamlit?** O fluxo é guiado por etapas (descrever → revisar → protocolo) e por painéis com filtros. O modelo de *rerun* do Streamlit com `st.session_state` deixa o estado explícito; `st.status`, `st.progress`, `st.tabs` e `st.plotly_chart` cobrem latência, layout e visualização sem JavaScript próprio. Também tem deploy gratuito no Community Cloud.
+**Por que Streamlit?** O fluxo é guiado por etapas (descrever → revisar → protocolo) e por painéis com filtros. O modelo de *rerun* do Streamlit com `st.session_state` deixa o estado explícito; `st.status`, `st.progress`, `st.tabs` e `st.plotly_chart` cobrem latência, layout e visualização sem JavaScript próprio.
 
 **Estado e cache (onde estão):**
 - `frontend/state/session.py`: etapa atual, rascunho do relato, resultado da IA (**guardado para não chamar o LLM de novo a cada rerun**), falha da IA (habilita o registro manual), protocolos do cidadão, histórico de interações (alimenta o gráfico "Sua atividade") e preferências de acessibilidade. Os protocolos também são **espelhados na URL** (`?p=...`), então sobrevivem a recarregar a página e podem ser salvos como favorito, sem login e sem guardar dados pessoais.
@@ -139,9 +139,7 @@ Documentação interativa: `http://localhost:8000/docs`.
 - Regras determinísticas **depois** da IA (`apply_rules`): prazo e órgão vêm de tabela fixa (não da IA), e se houver alerta de segurança a urgência não pode ser baixa. A contagem de relatos parecidos é feita no banco, não pela IA.
 - Defesa contra *prompt injection*: o relato vai delimitado por aspas triplas e o prompt manda ignorar instruções contidas nele (caso de teste 6).
 
-**Por que esse deploy?** _(escolha do grupo; o projeto suporta as duas opções)_
-- **Opção A:** API no Render (Docker, `backend/Dockerfile`) + front no Streamlit Community Cloud com `API_URL` em *Secrets*.
-- **Opção B:** `docker compose up` sobe API + front.
+**Por que esse deploy?** Front e API ficam no mesmo projeto da Vercel (Opção A, detalhada na seção de execução), com uma URL só e sem servidor para manter. Para rodar tudo localmente em containers, `docker compose up` sobe API + front (Opção B).
 
 ## 6. Ética e limites da IA
 
@@ -250,28 +248,26 @@ O front chega à API por um **vínculo interno** (*binding*): a Vercel injeta o 
 
 1. *Add New → Project* → importar este repositório **com Root Directory `./`** (a Vercel reconhece o `vercel.json` e usa o preset *Services*).
 2. *Environment Variables*: `GEMINI_API_KEY`, `MANAGER_TOKEN` (código do gestor), `CORS_ORIGINS` (URL do projeto, ex.: `https://gs-2026-2-frontend.vercel.app`), `SEED_DEMO_DATA=true` (a porta do Streamlit vem do `EXPOSE 8501` do Dockerfile).
-3. *Storage → Neon (Postgres)* conectado ao projeto: a Vercel cria a variável `DATABASE_URL` sozinha. Depois, *Redeploy*.
+3. *Redeploy* para as variáveis valerem.
 
 **Por que Streamlit em container:** o Streamlit é um servidor que fica ligado e conversa com o navegador por WebSocket, não uma função que responde e termina. O runtime de containers da Vercel (em beta) roda o mesmo `Dockerfile` usado no `docker compose`.
 
-**Limitação do Streamlit na Vercel:** o container desliga após 5 min sem uso e cada conexão tem tempo máximo. Quando isso acontece, o Streamlit reconecta sozinho, mas o que o cidadão estava preenchendo se perde. Os protocolos sobrevivem porque ficam na URL, e os relatos estão no Postgres.
+**Limitação do Streamlit na Vercel:** o container desliga após 5 min sem uso e cada conexão tem tempo máximo. Quando isso acontece, o Streamlit reconecta sozinho, mas o que o cidadão estava preenchendo se perde. Os protocolos sobrevivem porque ficam na URL.
 
-**Por que Postgres no deploy:** na Vercel cada chamada pode cair numa instância diferente da função, cada uma com o próprio disco temporário. Com SQLite, o cidadão poderia registrar o relato numa instância e não encontrá-lo na outra. Por isso `providers/repository.py` tem duas implementações com a mesma interface: SQLite (local e Docker) e Postgres (quando existe `DATABASE_URL`). Nenhuma outra camada muda.
+**Banco de dados:** SQLite (`providers/repository.py`). Na Vercel só a pasta `/tmp` é gravável, então os relatos do site publicado são **temporários**: somem num novo deploy ou quando a função reinicia, e o painel volta com os dados de demonstração. Para a POC isso basta; em produção, o repositório trocaria o SQLite por um banco gerenciado (ex.: Postgres) sem mudar as outras camadas.
 
-**Limitações conhecidas:** o limite de análises por IP fica na memória de cada instância (em produção iria para um Redis); a primeira chamada depois de um tempo parado pode levar alguns segundos a mais (*cold start*), e o front mostra "Acordando o servidor…" se demorar.
-
-> Alternativas já prontas: `render.yaml` sobe a API no Render (*New → Blueprint*), e o front também roda no Streamlit Community Cloud (*Main file path* `frontend/app.py`, *Secret* `API_URL`).
+**Limitações conhecidas:** o limite de análises por IP fica na memória de cada instância (em produção iria para um Redis); a primeira chamada depois de um tempo parado pode levar alguns segundos a mais (*cold start*).
 
 ### Testes automatizados
 ```bash
-cd backend && pytest -q        # 39 testes: pipeline, API, CEP (encontrado, inexistente, ViaCEP fora do ar), banco SQLite/Postgres, privacidade, RBAC, falhas do LLM, cadeia de modelos, rate limit, CORS
+cd backend && pytest -q        # 38 testes: pipeline, API, CEP (encontrado, inexistente, ViaCEP fora do ar), banco SQLite, privacidade, RBAC, falhas do LLM, cadeia de modelos, rate limit, CORS
 cd frontend && pip install -r requirements-dev.txt && pytest -q   # 7 testes: validação, aviso de CEP, filtros, prioridade da fila
 ```
 Nenhum teste acessa a internet. O GitHub Actions (`.github/workflows/tests.yml`) roda tudo a cada push.
 
 ## 10. Segurança
 
-- `GEMINI_API_KEY` e `MANAGER_TOKEN` só em `.env` / variáveis de ambiente / `st.secrets`; `.env` está no `.gitignore` e o repositório traz apenas `.env.example`.
+- `GEMINI_API_KEY` e `MANAGER_TOKEN` só em `.env` / variáveis de ambiente; `.env` está no `.gitignore` e o repositório traz apenas `.env.example`.
 - A chave fica **somente no back-end**: o front não tem nenhuma credencial de IA.
 - CORS com lista explícita de origens; `*` é descartado mesmo se configurado (`config.py`).
 - **Limite de análises por IP** (`ANALYZE_RATE_LIMIT_PER_MINUTE`, padrão 10) protege a cota do LLM; o cidadão vê "aguarde um minuto".

@@ -35,16 +35,16 @@ def analyze_report(
     """Etapa 1: a IA classifica o relato. Nada é salvo ainda (o cidadão confirma depois)."""
     try:
         result = pipeline.run(data)
-    except LLMInvalidResponse:
+    except LLMInvalidResponse as exc:
         raise HTTPException(
             status.HTTP_502_BAD_GATEWAY,
             detail={"code": "invalid_ai_response", "message": "A IA respondeu em formato inesperado."},
-        )
-    except LLMError:
+        ) from exc
+    except LLMError as exc:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             detail={"code": "llm_unavailable", "message": "O serviço de IA está indisponível."},
-        )
+        ) from exc
     days = request.app.state.settings.similar_window_days
     similar = repo.count_similar_open(result.category, result.location, days)
     return result.model_copy(update={"similar_open": similar})

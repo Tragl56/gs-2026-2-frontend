@@ -1,3 +1,5 @@
+import pytest
+
 from app.pipelines.triage import TriagePipeline, anonymize, apply_rules, build_user_prompt, manual_title
 from app.providers.llm import FallbackProvider, LLMError, LLMInvalidResponse, MockProvider
 from app.providers.rate_limit import RateLimiter
@@ -100,10 +102,8 @@ def test_fallback_skips_retry_when_out_of_time():
     waits = []
     chain = FallbackProvider([_Broken(LLMError("504"))], retry_rounds=1, retry_wait=2, budget_seconds=25,
                              sleep=waits.append, clock=lambda: next(ticks))
-    try:
+    with pytest.raises(LLMError):
         chain.triage("s", "u")
-    except LLMError:
-        pass
     assert waits == []
 
 
@@ -129,12 +129,3 @@ def test_rate_limiter_blocks_then_releases():
     assert limiter.allow("outro-ip", now=2)
     assert limiter.allow("ip", now=61)
 
-
-def test_build_repository_picks_backend(monkeypatch):
-    from app.providers import repository as repo_mod
-
-    assert isinstance(repo_mod.build_repository("", ":memory:"), repo_mod.SQLiteReportRepository)
-
-    monkeypatch.setattr(repo_mod.PostgresReportRepository, "__init__", lambda self, url: setattr(self, "url", url))
-    pg = repo_mod.build_repository("postgresql://u:p@host/db", ":memory:")
-    assert isinstance(pg, repo_mod.PostgresReportRepository) and pg.url.startswith("postgresql://")
